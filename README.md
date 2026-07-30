@@ -3,8 +3,17 @@
 Registro de la rotación de la fila de primeros violines: cuántos puntos acumuló cada músico
 por temporada y quién entra primero cuando un concierto necesita menos violines.
 
-Es una sola página estática (`index.html`) contra Supabase. No hay build ni dependencias:
-se puede abrir el archivo directamente o publicarlo en GitHub Pages.
+Es una sola página estática (`index.html`) contra Supabase. No hay build ni dependencias
+—ni siquiera un CDN externo: el cliente de Supabase está escrito a mano contra la API REST,
+así la página carga aunque la red bloquee otros dominios.
+
+Publicada en https://prog-collab.github.io/rotacion-violines/
+
+## El puntaje es acumulativo
+
+El total **no se reinicia** cada año: cada temporada arranca con el acumulado de la anterior.
+La tabla muestra `Total <año>` (arrastre + lo de la temporada) y, al lado, la columna `Arrastre`
+con lo que traía de antes. La rotación se decide por el total acumulado.
 
 ## Permisos
 
@@ -25,6 +34,11 @@ se puede abrir el archivo directamente o publicarlo en GitHub Pages.
 | 0 | No participó |
 
 La temporada 2025 quedó cargada con la escala vieja (incluye valores de 0,75), tal cual la planilla original.
+
+2025 tiene además una columna **"Ajuste planilla original"**: los totales por músico se tomaron de la
+planilla, pero el detalle concierto por concierto se leyó de una captura de pantalla y en 6 filas no
+cerraba. El ajuste absorbe esa diferencia para que el total coincida exacto. Cuando aparezca el detalle
+real, se corrigen esas celdas y el ajuste vuelve a 0.
 
 ## Uso
 
