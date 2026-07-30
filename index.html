@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rotación · Primeros violines</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#16181d; --muted:#6b7280; --line:#e3e6ea;
+    --accent:#7a1f2b; --accent-soft:#f3e6e8; --ok:#1c7a4a; --warn:#b4690e;
+    --cell-0:#fafafa; --shadow:0 1px 2px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#101215; --panel:#17191e; --ink:#e8eaed; --muted:#9aa1ab; --line:#282c33;
+      --accent:#d98a96; --accent-soft:#2a1c20; --ok:#5fd39a; --warn:#e0a458;
+      --cell-0:#1b1e23; --shadow:0 1px 2px rgba(0,0,0,.4);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px 18px 80px}
+  header{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin-bottom:18px}
+  h1{font-size:20px;margin:0;letter-spacing:-.2px}
+  h1 small{display:block;font-weight:400;font-size:13px;color:var(--muted);letter-spacing:0}
+  .badge{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .badge.ro{background:var(--line);color:var(--muted)}
+  button,select,input{font:inherit;color:inherit}
+  .btn{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;box-shadow:var(--shadow)}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.primary:hover{opacity:.9}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+  select,input[type=text],input[type=email],input[type=password],input[type=number],input[type=date]{
+    background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+  .tablewrap{overflow-x:auto;border-radius:12px}
+  table{border-collapse:separate;border-spacing:0;width:100%;font-size:14px}
+  th,td{border-bottom:1px solid var(--line);padding:0;text-align:center;white-space:nowrap}
+  thead th{position:sticky;top:0;z-index:3;background:var(--panel);font-size:12px;font-weight:600;
+    color:var(--muted);padding:8px 10px;vertical-align:bottom;border-bottom:2px solid var(--line)}
+  thead th .fecha{display:block;color:var(--accent);font-weight:700}
+  th.name,td.name{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;
+    padding:8px 12px;min-width:150px;border-right:1px solid var(--line)}
+  thead th.name{z-index:4}
+  td.total{font-weight:700;background:var(--accent-soft);min-width:64px;padding:6px}
+  th.total{background:var(--accent-soft);color:var(--accent)}
+  tbody tr:hover td{background:color-mix(in srgb,var(--accent-soft) 45%,transparent)}
+  tbody tr:hover td.name{background:color-mix(in srgb,var(--accent-soft) 60%,var(--panel))}
+  td.cell{min-width:62px}
+  td.cell .v{display:block;padding:9px 6px;border-radius:6px;margin:2px}
+  td.cell.z .v{color:var(--muted);opacity:.55}
+  td.cell input{width:56px;text-align:center;padding:6px 2px;border-radius:6px;margin:2px;
+    border:1px solid var(--line);background:transparent}
+  td.cell input:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--panel)}
+  td.cell input.saving{border-color:var(--warn)}
+  td.cell input.saved{border-color:var(--ok)}
+  .rank{color:var(--muted);font-size:12px;width:28px;display:inline-block}
+  .inactivo td.name{opacity:.55;font-style:italic}
+  .grid2{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start}
+  @media (max-width:900px){.grid2{grid-template-columns:1fr}}
+  .side{padding:14px 16px}
+  .side h2{font-size:14px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .side ol{margin:0;padding-left:22px}
+  .side li{padding:2px 0}
+  .side li.out{color:var(--muted);opacity:.6}
+  .legend{font-size:13px;color:var(--muted);margin-top:6px}
+  .legend b{color:var(--ink)}
+  dialog{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);
+    padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);max-width:420px;width:92vw}
+  dialog::backdrop{background:rgba(0,0,0,.45)}
+  dialog h3{margin:0 0 12px;font-size:17px}
+  dialog label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  dialog input{width:100%}
+  .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+  .msg{font-size:13px;margin-top:10px;min-height:18px}
+  .msg.err{color:#c0392b}.msg.ok{color:var(--ok)}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+    padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
+  #toast.show{opacity:1}
+  .foot{color:var(--muted);font-size:12px;margin-top:18px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Rotación de primeros violines
+      <small>Registro de puntajes por concierto</small>
+    </h1>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="modo" class="badge ro">Solo lectura</span>
+      <button class="btn" id="btnLogin">Ingresar</button>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <label style="color:var(--muted);font-size:13px">Temporada</label>
+    <select id="temporada"></select>
+    <label style="color:var(--muted);font-size:13px">Ordenar por</label>
+    <select id="orden">
+      <option value="planilla">Orden de planilla</option>
+      <option value="total">Puntaje (menor primero)</option>
+      <option value="nombre">Nombre</option>
+    </select>
+    <label style="font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px">
+      <input type="checkbox" id="verInactivos"> ver inactivos
+    </label>
+    <span style="flex:1"></span>
+    <button class="btn" id="btnCsv">Exportar CSV</button>
+    <button class="btn edit-only" id="btnConcierto" hidden>+ Concierto</button>
+    <button class="btn edit-only" id="btnMusico" hidden>+ Músico</button>
+    <button class="btn edit-only" id="btnEditores" hidden>Editores</button>
+    <button class="btn" id="btnRefrescar">Refrescar</button>
+  </div>
+
+  <div class="grid2">
+    <div class="card tablewrap">
+      <table id="tabla"><thead></thead><tbody></tbody></table>
+    </div>
+
+    <div>
+      <div class="card side" style="margin-bottom:14px">
+        <h2>Próxima rotación</h2>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <span style="font-size:13px;color:var(--muted)">Se necesitan</span>
+          <input type="number" id="cupo" value="8" min="1" max="40" style="width:70px">
+          <span style="font-size:13px;color:var(--muted)">violines</span>
+        </div>
+        <ol id="listaRotacion"></ol>
+        <p class="legend">Entran primero los de menor puntaje acumulado en la temporada. Empates: se desempata por el histórico total y después por el orden de la planilla.</p>
+      </div>
+
+      <div class="card side">
+        <h2>Escala de puntaje</h2>
+        <p class="legend"><b>1</b> — concierto + su semana de ensayo<br>
+        <b>0,5</b> — medio programa o alguna obra del concierto<br>
+        <b>2</b> — concierto con 2 semanas de ensayo<br>
+        <b>0</b> — no participó</p>
+        <p class="legend" style="margin-top:10px">Los valores de <b>2025</b> quedaron cargados con la escala vieja (incluye 0,75), tal cual la planilla original.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="foot">Los datos se guardan en Supabase. Editan solo los emails autorizados; el resto de la fila ve la tabla sin necesidad de ingresar.</p>
+</div>
+
+<dialog id="dlgLogin">
+  <h3>Ingresar para editar</h3>
+  <label>Email</label>
+  <input type="email" id="liEmail" autocomplete="email">
+  <label>Contraseña</label>
+  <input type="password" id="liPass" autocomplete="current-password">
+  <div class="msg" id="liMsg"></div>
+  <div class="row">
+    <button class="btn" id="liSignup">Crear / restablecer clave</button>
+    <button class="btn" onclick="document.getElementById('dlgLogin').close()">Cancelar</button>
+    <button class="btn primary" id="liGo">Entrar</button>
+  </div>
+</dialog>
+
+<dialog id="dlgConcierto">
+  <h3 id="dlgConciertoTit">Nuevo concierto</h3>
+  <label>Fecha</label>
+  <input type="date" id="cFecha">
+  <label>Etiqueta corta (la que se ve en la columna)</label>
+  <input type="text" id="cFechaTexto" placeholder="24/4">
+  <label>Título</label>
+  <input type="text" id="cTitulo" placeholder="Beethoven 5ª">
+  <label>Semanas de ensayo (opcional)</label>
+  <input type="number" id="cSemanas" step="0.5" min="0" placeholder="1">
+  <div class="msg" id="cMsg"></div>
+  <div class="row">
+    <button class="btn" id="cBorrar" style="margin-right:auto;color:#c0392b" hidden>Eliminar</button>
+    <button class="btn" onclick="document.getElementById('dlgConcierto').close()">Cancelar</button>
+    <button class="btn primary" id="cGuardar">Guardar</button>
+  </div>
+</dialog>
+
+<dialog id="dlgMusico">
+  <h3 id="dlgMusicoTit">Nuevo músico</h3>
+  <label>Nombre</label>
+  <input type="text" id="mNombre">
+  <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+    <input type="checkbox" id="mActivo" checked style="width:auto"> Activo en la fila
+  </label>
+  <div class="msg" id="mMsg"></div>
+  <div class="row">
+    <button class="btn" onclick="document.getElementById('dlgMusico').close()">Cancelar</button>
+    <button class="btn primary" id="mGuardar">Guardar</button>
+  </div>
+</dialog>
+
+<dialog id="dlgEditores">
+  <h3>Quién puede editar</h3>
+  <p class="legend" style="margin-top:0">Estos emails pueden modificar puntajes, conciertos y músicos. Cada uno tiene que crear su clave desde “Ingresar”.</p>
+  <ul id="listaEditores" style="padding-left:18px;margin:12px 0"></ul>
+  <label>Agregar email</label>
+  <input type="email" id="eEmail" placeholder="concertino@ejemplo.com">
+  <div class="msg" id="eMsg"></div>
+  <div class="row">
+    <button class="btn" onclick="document.getElementById('dlgEditores').close()">Cerrar</button>
+    <button class="btn primary" id="eAgregar">Agregar</button>
+  </div>
+</dialog>
+
+<div id="toast"></div>
+
+<script type="module">
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const SUPABASE_URL = 'https://grswqigekcopfrozcxqj.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_AGlBHQBCR12TzPnCjuLeKQ_jEwi42TF';
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const $ = s => document.querySelector(s);
+const fmt = n => (Number(n) || 0).toString().replace('.', ',');
+let state = { musicos: [], conciertos: [], puntos: new Map(), temporada: null, esEditor: false, email: null };
+
+const toast = (t) => {
+  const el = $('#toast'); el.textContent = t; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200);
+};
+const key = (c, m) => c + '|' + m;
+
+/* ---------- sesión ---------- */
+async function refrescarSesion() {
+  const { data: { session } } = await sb.auth.getSession();
+  state.email = session?.user?.email ?? null;
+  state.esEditor = false;
+  if (state.email) {
+    const { data } = await sb.from('viol_editores').select('email').limit(1);
+    state.esEditor = !!(data && data.length);
+  }
+  const badge = $('#modo');
+  if (state.esEditor) {
+    badge.textContent = 'Edición · ' + state.email;
+    badge.classList.remove('ro');
+  } else {
+    badge.textContent = state.email ? 'Sin permiso de edición' : 'Solo lectura';
+    badge.classList.add('ro');
+  }
+  $('#btnLogin').textContent = state.email ? 'Salir' : 'Ingresar';
+  document.querySelectorAll('.edit-only').forEach(b => b.hidden = !state.esEditor);
+}
+
+$('#btnLogin').onclick = async () => {
+  if (state.email) {
+    await sb.auth.signOut();
+    await refrescarSesion(); render();
+    toast('Sesión cerrada');
+  } else {
+    $('#liMsg').textContent = '';
+    $('#dlgLogin').showModal();
+  }
+};
+
+$('#liGo').onclick = async () => {
+  const msg = $('#liMsg'); msg.className = 'msg';
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('#liEmail').value.trim(), password: $('#liPass').value });
+  if (error) { msg.className = 'msg err'; msg.textContent = error.message; return; }
+  $('#dlgLogin').close();
+  await refrescarSesion();
+  await cargar(); render();
+  toast(state.esEditor ? 'Modo edición activado' : 'Entraste, pero este email no es editor');
+};
+
+$('#liSignup').onclick = async () => {
+  const msg = $('#liMsg'); msg.className = 'msg';
+  const email = $('#liEmail').value.trim();
+  const pass = $('#liPass').value;
+  if (!email) { msg.className = 'msg err'; msg.textContent = 'Escribí tu email.'; return; }
+  if (pass.length >= 6) {
+    const { error } = await sb.auth.signUp({ email, password: pass });
+    if (error && !/already/i.test(error.message)) { msg.className='msg err'; msg.textContent = error.message; return; }
+    if (!error) { msg.className = 'msg ok'; msg.textContent = 'Cuenta creada. Revisá tu email si te pide confirmar y después entrá.'; return; }
+  }
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href });
+  msg.className = error ? 'msg err' : 'msg ok';
+  msg.textContent = error ? error.message : 'Te mandamos un email para definir la contraseña.';
+};
+
+/* ---------- datos ---------- */
+async function cargar() {
+  const [mus, con] = await Promise.all([
+    sb.from('viol_musicos').select('*').order('orden'),
+    sb.from('viol_conciertos').select('*').order('temporada').order('orden')
+  ]);
+  if (mus.error || con.error) { toast('Error cargando datos'); return; }
+  state.musicos = mus.data;
+  state.conciertos = con.data;
+
+  const conTemporada = [...new Set(state.conciertos.map(c => c.temporada))];
+  const anioActual = new Date().getFullYear();
+  const temporadas = [...new Set([...conTemporada, anioActual])].sort((a, b) => b - a);
+  // por defecto, el año en curso si ya tiene conciertos; si no, la última temporada cargada
+  if (!state.temporada || !temporadas.includes(state.temporada))
+    state.temporada = conTemporada.includes(anioActual) || !conTemporada.length
+      ? anioActual : Math.max(...conTemporada);
+  $('#temporada').innerHTML = temporadas.map(t =>
+    `<option value="${t}" ${t === state.temporada ? 'selected' : ''}>${t}</option>`).join('');
+
+  const { data: parts, error } = await sb.from('viol_participaciones').select('*');
+  if (error) { toast('Error cargando puntajes'); return; }
+  state.puntos = new Map(parts.map(p => [key(p.concierto_id, p.musico_id), Number(p.puntos)]));
+}
+
+const conciertosTemporada = () => state.conciertos.filter(c => c.temporada === state.temporada);
+const totalTemporada = (mid) => conciertosTemporada().reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
+const totalHistorico = (mid) => state.conciertos.reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
+
+function musicosVisibles() {
+  let ms = state.musicos.filter(m => m.activo || $('#verInactivos').checked);
+  const o = $('#orden').value;
+  if (o === 'total') ms = [...ms].sort((a, b) =>
+    totalTemporada(a.id) - totalTemporada(b.id) || totalHistorico(a.id) - totalHistorico(b.id) || a.orden - b.orden);
+  else if (o === 'nombre') ms = [...ms].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  return ms;
+}
+
+/* ---------- render ---------- */
+function render() {
+  const cs = conciertosTemporada();
+  const ms = musicosVisibles();
+
+  $('#tabla').tHead.innerHTML = '<tr>' +
+    '<th class="name">Músico</th><th class="total">Total</th>' +
+    cs.map(c => `<th data-cid="${c.id}" ${state.esEditor ? 'style="cursor:pointer" title="Editar concierto"' : ''}>
+        <span class="fecha">${esc(c.fecha_texto)}</span>${esc(c.titulo)}</th>`).join('') +
+    (state.esEditor && cs.length === 0 ? '<th style="padding:14px;color:var(--muted)">Agregá el primer concierto →</th>' : '') +
+    '</tr>';
+
+  const ranking = [...ms].sort((a, b) => totalTemporada(a.id) - totalTemporada(b.id));
+  const pos = new Map(ranking.map((m, i) => [m.id, i + 1]));
+
+  $('#tabla').tBodies[0].innerHTML = ms.map(m => {
+    const t = totalTemporada(m.id);
+    return `<tr class="${m.activo ? '' : 'inactivo'}" data-mid="${m.id}">
+      <td class="name"><span class="rank">${pos.get(m.id)}º</span>${esc(m.nombre)}</td>
+      <td class="total">${fmt(t)}</td>
+      ${cs.map(c => {
+        const v = state.puntos.get(key(c.id, m.id)) ?? 0;
+        return state.esEditor
+          ? `<td class="cell ${v ? '' : 'z'}"><input type="number" step="0.25" min="0" max="6"
+               value="${v}" data-cid="${c.id}" data-mid="${m.id}"></td>`
+          : `<td class="cell ${v ? '' : 'z'}"><span class="v">${fmt(v)}</span></td>`;
+      }).join('')}
+    </tr>`;
+  }).join('');
+
+  if (state.esEditor) {
+    $('#tabla').tBodies[0].querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('change', () => guardarPunto(inp));
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
+    });
+    $('#tabla').tHead.querySelectorAll('th[data-cid]').forEach(th =>
+      th.onclick = () => abrirConcierto(state.conciertos.find(c => c.id === th.dataset.cid)));
+    $('#tabla').tBodies[0].querySelectorAll('td.name').forEach(td =>
+      td.ondblclick = () => abrirMusico(state.musicos.find(m => m.id === td.parentElement.dataset.mid)));
+  }
+  renderRotacion(ranking);
+}
+
+function renderRotacion(ranking) {
+  const cupo = Math.max(1, Number($('#cupo').value) || 1);
+  $('#listaRotacion').innerHTML = ranking.map((m, i) =>
+    `<li class="${i < cupo ? '' : 'out'}">${esc(m.nombre)} <span style="color:var(--muted)">· ${fmt(totalTemporada(m.id))}</span></li>`
+  ).join('');
+}
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- edición ---------- */
+async function guardarPunto(inp) {
+  const puntos = Number(inp.value) || 0;
+  inp.className = 'saving';
+  const { error } = await sb.from('viol_participaciones').upsert({
+    concierto_id: inp.dataset.cid, musico_id: inp.dataset.mid,
+    puntos, actualizado_en: new Date().toISOString(), actualizado_por: state.email
+  }, { onConflict: 'concierto_id,musico_id' });
+  if (error) { inp.className = ''; toast('No se pudo guardar: ' + error.message); return; }
+  inp.className = 'saved';
+  setTimeout(() => inp.className = '', 900);
+  state.puntos.set(key(inp.dataset.cid, inp.dataset.mid), puntos);
+  const tr = inp.closest('tr');
+  tr.querySelector('td.total').textContent = fmt(totalTemporada(tr.dataset.mid));
+  inp.closest('td').classList.toggle('z', !puntos);
+  renderRotacion([...musicosVisibles()].sort((a, b) => totalTemporada(a.id) - totalTemporada(b.id)));
+}
+
+let conciertoEdit = null;
+function abrirConcierto(c) {
+  conciertoEdit = c || null;
+  $('#dlgConciertoTit').textContent = c ? 'Editar concierto' : 'Nuevo concierto';
+  $('#cFecha').value = c?.fecha ?? '';
+  $('#cFechaTexto').value = c?.fecha_texto ?? '';
+  $('#cTitulo').value = c?.titulo ?? '';
+  $('#cSemanas').value = c?.semanas_ensayo ?? '';
+  $('#cBorrar').hidden = !c;
+  $('#cMsg').textContent = '';
+  $('#dlgConcierto').showModal();
+}
+$('#btnConcierto').onclick = () => abrirConcierto(null);
+
+$('#cFecha').onchange = () => {
+  if (!$('#cFechaTexto').value && $('#cFecha').value) {
+    const [y, m, d] = $('#cFecha').value.split('-');
+    $('#cFechaTexto').value = `${+d}/${+m}`;
+  }
+};
+
+$('#cGuardar').onclick = async () => {
+  const fecha = $('#cFecha').value || null;
+  const titulo = $('#cTitulo').value.trim();
+  const fecha_texto = $('#cFechaTexto').value.trim() || (fecha ? fecha.slice(8) + '/' + fecha.slice(5, 7) : '');
+  if (!titulo) { $('#cMsg').className = 'msg err'; $('#cMsg').textContent = 'Falta el título.'; return; }
+  const semanas = $('#cSemanas').value === '' ? null : Number($('#cSemanas').value);
+  const temporada = fecha ? Number(fecha.slice(0, 4)) : state.temporada;
+  let error;
+  if (conciertoEdit) {
+    ({ error } = await sb.from('viol_conciertos')
+      .update({ fecha, fecha_texto, titulo, semanas_ensayo: semanas, temporada })
+      .eq('id', conciertoEdit.id));
+  } else {
+    const maxOrden = Math.max(0, ...state.conciertos.filter(c => c.temporada === temporada).map(c => c.orden));
+    ({ error } = await sb.from('viol_conciertos')
+      .insert({ fecha, fecha_texto, titulo, semanas_ensayo: semanas, temporada, orden: maxOrden + 1 }));
+  }
+  if (error) { $('#cMsg').className = 'msg err'; $('#cMsg').textContent = error.message; return; }
+  $('#dlgConcierto').close();
+  state.temporada = temporada;
+  await cargar(); $('#temporada').value = state.temporada; render();
+  toast('Concierto guardado');
+};
+
+$('#cBorrar').onclick = async () => {
+  if (!conciertoEdit) return;
+  if (!confirm(`¿Eliminar "${conciertoEdit.titulo}" y todos sus puntajes?`)) return;
+  const { error } = await sb.from('viol_conciertos').delete().eq('id', conciertoEdit.id);
+  if (error) { $('#cMsg').className = 'msg err'; $('#cMsg').textContent = error.message; return; }
+  $('#dlgConcierto').close();
+  await cargar(); render(); toast('Concierto eliminado');
+};
+
+let musicoEdit = null;
+function abrirMusico(m) {
+  musicoEdit = m || null;
+  $('#dlgMusicoTit').textContent = m ? 'Editar músico' : 'Nuevo músico';
+  $('#mNombre').value = m?.nombre ?? '';
+  $('#mActivo').checked = m ? m.activo : true;
+  $('#mMsg').textContent = '';
+  $('#dlgMusico').showModal();
+}
+$('#btnMusico').onclick = () => abrirMusico(null);
+
+$('#mGuardar').onclick = async () => {
+  const nombre = $('#mNombre').value.trim();
+  if (!nombre) { $('#mMsg').className = 'msg err'; $('#mMsg').textContent = 'Falta el nombre.'; return; }
+  const activo = $('#mActivo').checked;
+  let error;
+  if (musicoEdit) {
+    ({ error } = await sb.from('viol_musicos').update({ nombre, activo }).eq('id', musicoEdit.id));
+  } else {
+    const maxOrden = Math.max(0, ...state.musicos.map(m => m.orden));
+    ({ error } = await sb.from('viol_musicos').insert({ nombre, activo, orden: maxOrden + 1 }));
+  }
+  if (error) { $('#mMsg').className = 'msg err'; $('#mMsg').textContent = error.message; return; }
+  $('#dlgMusico').close();
+  await cargar(); render(); toast('Músico guardado');
+};
+
+async function renderEditores() {
+  const { data, error } = await sb.from('viol_editores').select('*').order('email');
+  const ul = $('#listaEditores');
+  if (error) { ul.innerHTML = `<li style="color:#c0392b">${esc(error.message)}</li>`; return; }
+  ul.innerHTML = data.map(e => `<li style="padding:3px 0">${esc(e.email)}
+    ${e.email.toLowerCase() === (state.email || '').toLowerCase()
+      ? '<span style="color:var(--muted);font-size:12px"> · vos</span>'
+      : `<button class="btn" data-quitar="${esc(e.email)}" style="padding:2px 8px;font-size:12px;margin-left:6px">quitar</button>`}
+    </li>`).join('');
+  ul.querySelectorAll('button[data-quitar]').forEach(b => b.onclick = async () => {
+    if (!confirm(`¿Quitar permiso de edición a ${b.dataset.quitar}?`)) return;
+    const { error } = await sb.from('viol_editores').delete().eq('email', b.dataset.quitar);
+    if (error) { $('#eMsg').className = 'msg err'; $('#eMsg').textContent = error.message; return; }
+    renderEditores(); toast('Editor quitado');
+  });
+}
+$('#btnEditores').onclick = () => { $('#eMsg').textContent = ''; $('#eEmail').value = ''; renderEditores(); $('#dlgEditores').showModal(); };
+$('#eAgregar').onclick = async () => {
+  const email = $('#eEmail').value.trim().toLowerCase();
+  if (!email) return;
+  const { error } = await sb.from('viol_editores').insert({ email });
+  if (error) { $('#eMsg').className = 'msg err'; $('#eMsg').textContent = error.message; return; }
+  $('#eEmail').value = ''; $('#eMsg').className = 'msg ok';
+  $('#eMsg').textContent = 'Listo. Ahora tiene que entrar y crear su clave.';
+  renderEditores();
+};
+
+/* ---------- varios ---------- */
+$('#btnCsv').onclick = () => {
+  const cs = conciertosTemporada();
+  const filas = [['Músico', 'Total', ...cs.map(c => `${c.fecha_texto} ${c.titulo}`)]];
+  musicosVisibles().forEach(m => filas.push([m.nombre, totalTemporada(m.id),
+    ...cs.map(c => state.puntos.get(key(c.id, m.id)) ?? 0)]));
+  const csv = filas.map(f => f.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `rotacion-violines-${state.temporada}.csv`;
+  a.click();
+};
+
+$('#temporada').onchange = e => { state.temporada = Number(e.target.value); render(); };
+$('#orden').onchange = render;
+$('#verInactivos').onchange = render;
+$('#cupo').oninput = () => renderRotacion([...musicosVisibles()].sort((a, b) => totalTemporada(a.id) - totalTemporada(b.id)));
+$('#btnRefrescar').onclick = async () => { await cargar(); render(); toast('Actualizado'); };
+
+await refrescarSesion();
+await cargar();
+render();
+</script>
+</body>
+</html>
