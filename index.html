@@ -162,6 +162,20 @@
   </div>
 </dialog>
 
+<dialog id="dlgClave">
+  <h3>Definí tu contraseña</h3>
+  <p class="legend" id="nvQuien"></p>
+  <label>Contraseña nueva (mínimo 6 caracteres)</label>
+  <input type="password" id="nvPass" autocomplete="new-password">
+  <label>Repetila</label>
+  <input type="password" id="nvPass2" autocomplete="new-password">
+  <div class="msg" id="nvMsg"></div>
+  <div class="row">
+    <button class="btn" onclick="document.getElementById('dlgClave').close()">Cancelar</button>
+    <button class="btn primary" id="nvGo">Guardar</button>
+  </div>
+</dialog>
+
 <dialog id="dlgConcierto">
   <h3 id="dlgConciertoTit">Nuevo concierto</h3>
   <label>Fecha</label>
@@ -255,6 +269,11 @@ const api = {
   remove: (tabla, query) => rest('DELETE', tabla, { query })
 };
 
+/* A dónde vuelve el usuario desde los mails de auth. Hay que mandarlo siempre:
+   el Site URL del proyecto Supabase apunta a localhost y sin redirect_to los
+   links rebotan ahí. Esta URL tiene que estar en Authentication → Redirect URLs. */
+const VOLVER_A = location.origin + location.pathname;
+
 const auth = {
   email: () => sesion?.user?.email ?? null,
   async pedir(ruta, body) {
@@ -274,11 +293,28 @@ const auth = {
     return { error };
   },
   async crear(email, password) {
-    const { data, error } = await auth.pedir('signup', { email, password });
+    const ruta = 'signup?redirect_to=' + encodeURIComponent(VOLVER_A);
+    const { data, error } = await auth.pedir(ruta, { email, password });
     if (!error && data?.access_token) guardarSesion(data);
     return { error, confirmar: !error && !data?.access_token };
   },
-  recuperar: (email) => auth.pedir('recover', { email }).then(r => ({ error: r.error })),
+  recuperar: (email) =>
+    auth.pedir('recover?redirect_to=' + encodeURIComponent(VOLVER_A), { email })
+      .then(r => ({ error: r.error })),
+  /* Define la contraseña del usuario que ya viene autenticado por el link del mail. */
+  async definirClave(password) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        method: 'PUT',
+        headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + sesion?.access_token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) return { error: { message: data.msg || data.message || `Error ${r.status}` } };
+      if (sesion) guardarSesion({ ...sesion, user: data });
+      return { error: null };
+    } catch (e) { return { error: { message: 'Sin conexión: ' + e.message } }; }
+  },
   async refrescar() {
     const { data, error } = await auth.pedir('token?grant_type=refresh_token', { refresh_token: sesion.refresh_token });
     if (error || !data?.access_token) { guardarSesion(null); return false; }
@@ -327,6 +363,55 @@ $('#btnLogin').onclick = async () => {
     $('#liMsg').textContent = '';
     $('#dlgLogin').showModal();
   }
+};
+
+/* ---------- vuelta desde el mail (recuperar clave / confirmar cuenta) ---------- */
+function leerHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (!h.has('access_token') && !h.has('error')) return null;
+  history.replaceState(null, '', location.pathname + location.search);
+  return h;
+}
+
+async function procesarVueltaDelMail() {
+  const h = leerHash();
+  if (!h) return;
+
+  if (h.has('error')) {
+    const vencido = h.get('error_code') === 'otp_expired';
+    toast(vencido
+      ? 'El link del mail venció o ya se usó. Pedí uno nuevo desde Ingresar.'
+      : 'No se pudo validar el link: ' + (h.get('error_description') || h.get('error')));
+    return;
+  }
+
+  guardarSesion({
+    access_token: h.get('access_token'),
+    refresh_token: h.get('refresh_token'),
+    user: { email: null }
+  });
+  // el hash no trae el email; lo pedimos para mostrarlo y dejar la sesión completa
+  try {
+    const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, { headers: headers() });
+    if (r.ok) guardarSesion({ ...sesion, user: await r.json() });
+  } catch { /* seguimos igual: el token alcanza para definir la clave */ }
+
+  $('#nvMsg').textContent = '';
+  $('#nvPass').value = ''; $('#nvPass2').value = '';
+  $('#nvQuien').textContent = auth.email() ? 'Para ' + auth.email() : '';
+  $('#dlgClave').showModal();
+}
+
+$('#nvGo').onclick = async () => {
+  const msg = $('#nvMsg'); msg.className = 'msg';
+  const p = $('#nvPass').value, p2 = $('#nvPass2').value;
+  if (p.length < 6) { msg.className = 'msg err'; msg.textContent = 'Mínimo 6 caracteres.'; return; }
+  if (p !== p2) { msg.className = 'msg err'; msg.textContent = 'Las dos contraseñas no coinciden.'; return; }
+  const { error } = await auth.definirClave(p);
+  if (error) { msg.className = 'msg err'; msg.textContent = error.message; return; }
+  $('#dlgClave').close();
+  await refrescarSesion(); await cargar(); render();
+  toast(state.esEditor ? 'Contraseña guardada. Modo edición activado' : 'Contraseña guardada');
 };
 
 $('#liGo').onclick = async () => {
@@ -606,6 +691,7 @@ $('#verInactivos').onchange = render;
 $('#cupo').oninput = () => renderRotacion([...musicosVisibles()].sort((a, b) => totalTemporada(a.id) - totalTemporada(b.id)));
 $('#btnRefrescar').onclick = async () => { await cargar(); render(); toast('Actualizado'); };
 
+await procesarVueltaDelMail();
 await refrescarSesion();
 await cargar();
 render();
