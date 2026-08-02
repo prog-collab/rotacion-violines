@@ -1,0 +1,16 @@
+{
+  "name": "Rotación · Primeros violines",
+  "short_name": "Rotación",
+  "description": "Orden y rotación de la fila de primeros violines de la Orquesta Sinfónica de Santa Fe",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f7f9",
+  "theme_color": "#7a1f2b",
+  "lang": "es",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
