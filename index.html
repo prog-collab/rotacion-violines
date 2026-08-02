@@ -53,6 +53,8 @@
   td.cell{min-width:62px}
   td.cell .v{display:block;padding:9px 6px;border-radius:6px;margin:2px}
   td.cell.z .v{color:var(--muted);opacity:.55}
+  td.cell.lic{background:color-mix(in srgb,var(--warn) 12%,transparent)}
+  td.cell.lic .v{color:var(--warn);font-weight:700;opacity:1}
   td.cell input{width:56px;text-align:center;padding:6px 2px;border-radius:6px;margin:2px;
     border:1px solid var(--line);background:transparent}
   td.cell input:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--panel)}
@@ -78,6 +80,17 @@
   .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
   .msg{font-size:13px;margin-top:10px;min-height:18px}
   .msg.err{color:#c0392b}.msg.ok{color:var(--ok)}
+  dialog.ancho{max-width:620px}
+  .lista{list-style:none;padding:0;margin:12px 0;font-size:13px}
+  .lista li{display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+  .lista li b{font-weight:600}
+  .lista .del{margin-left:auto;background:none;border:0;color:#c0392b;cursor:pointer;font-size:13px}
+  .resu{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  .resu table{font-size:13px}
+  .resu th,.resu td{padding:4px 6px;text-align:right;white-space:nowrap}
+  .resu th:first-child,.resu td:first-child{text-align:left}
+  .resu .big{font-size:22px;font-weight:700;color:var(--accent)}
+  .campos{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
   #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
     padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
   #toast.show{opacity:1}
@@ -109,7 +122,9 @@
       <input type="checkbox" id="verInactivos"> ver inactivos
     </label>
     <span style="flex:1"></span>
+    <button class="btn" id="btnReintegro">Calcular reintegro</button>
     <button class="btn" id="btnCsv">Exportar CSV</button>
+    <button class="btn edit-only" id="btnLicencias" hidden>Licencias</button>
     <button class="btn edit-only" id="btnConcierto" hidden>+ Concierto</button>
     <button class="btn edit-only" id="btnMusico" hidden>+ Músico</button>
     <button class="btn edit-only" id="btnEditores" hidden>Editores</button>
@@ -123,7 +138,7 @@
 
     <div>
       <div class="card side" style="margin-bottom:14px">
-        <h2>Prioridad para rotar</h2>
+        <h2>Prioridad para tocar</h2>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
           <span style="font-size:13px;color:var(--muted)">Se necesitan</span>
           <input type="number" id="cupo" value="8" min="1" max="40" style="width:70px">
@@ -159,6 +174,44 @@
     <button class="btn" id="liSignup">Crear / restablecer clave</button>
     <button class="btn" onclick="document.getElementById('dlgLogin').close()">Cancelar</button>
     <button class="btn primary" id="liGo">Entrar</button>
+  </div>
+</dialog>
+
+<dialog id="dlgLicencias" class="ancho">
+  <h3>Licencias de larga duración</h3>
+  <p class="legend" style="margin-top:0">Mientras dura la licencia, el músico aparece con <b>L</b> en los conciertos del período
+  y no entra en el promedio que se le calcula a los demás. Dejá <b>hasta</b> vacío si todavía no se reintegró.</p>
+  <ul class="lista" id="listaLicencias"></ul>
+  <label>Músico</label>
+  <select id="lcMusico"></select>
+  <div class="campos">
+    <div><label>Desde</label><input type="date" id="lcDesde"></div>
+    <div><label>Hasta (opcional)</label><input type="date" id="lcHasta"></div>
+  </div>
+  <label>Motivo (opcional)</label>
+  <input type="text" id="lcMotivo" placeholder="Licencia por maternidad">
+  <div class="msg" id="lcMsg"></div>
+  <div class="row">
+    <button class="btn" onclick="document.getElementById('dlgLicencias').close()">Cerrar</button>
+    <button class="btn primary" id="lcAgregar">Agregar</button>
+  </div>
+</dialog>
+
+<dialog id="dlgReintegro" class="ancho">
+  <h3>Puntaje de reintegro</h3>
+  <p class="legend" style="margin-top:0">El que vuelve de una licencia larga se reintegra con el puntaje que traía
+  más el promedio de lo que sumaron los demás durante su ausencia.</p>
+  <label>Músico que se reintegra</label>
+  <select id="rgMusico"></select>
+  <div class="campos">
+    <div><label>Ausente desde</label><input type="date" id="rgDesde"></div>
+    <div><label>Ausente hasta</label><input type="date" id="rgHasta"></div>
+  </div>
+  <div class="msg" id="rgMsg"></div>
+  <div class="resu" id="rgResu" hidden></div>
+  <div class="row">
+    <button class="btn" onclick="document.getElementById('dlgReintegro').close()">Cerrar</button>
+    <button class="btn primary" id="rgCalcular">Calcular</button>
   </div>
 </dialog>
 
@@ -325,7 +378,7 @@ const auth = {
 
 const $ = s => document.querySelector(s);
 const fmt = n => (Number(n) || 0).toString().replace('.', ',');
-let state = { musicos: [], conciertos: [], puntos: new Map(), temporada: null, esEditor: false, email: null };
+let state = { musicos: [], conciertos: [], puntos: new Map(), licencias: [], temporada: null, esEditor: false, email: null };
 
 const toast = (t) => {
   const el = $('#toast'); el.textContent = t; el.classList.add('show');
@@ -448,13 +501,15 @@ $('#liSignup').onclick = async () => {
 
 /* ---------- datos ---------- */
 async function cargar() {
-  const [mus, con] = await Promise.all([
+  const [mus, con, lic] = await Promise.all([
     api.get('viol_musicos', 'select=*&order=orden'),
-    api.get('viol_conciertos', 'select=*&order=temporada,orden')
+    api.get('viol_conciertos', 'select=*&order=temporada,orden'),
+    api.get('viol_licencias', 'select=*&order=desde')
   ]);
   if (mus.error || con.error) { toast('Error cargando datos: ' + (mus.error || con.error).message); return; }
   state.musicos = mus.data;
   state.conciertos = con.data;
+  state.licencias = lic.data || [];
 
   const conTemporada = [...new Set(state.conciertos.map(c => c.temporada))];
   const anioActual = new Date().getFullYear();
@@ -481,6 +536,14 @@ const arrastre = (mid) => state.conciertos.filter(c => c.temporada < state.tempo
 const totalTemporada = (mid) => arrastre(mid) + puntosTemporada(mid);
 const hayArrastre = () => state.conciertos.some(c => c.temporada < state.temporada);
 const totalHistorico = (mid) => state.conciertos.reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
+
+/* ---------- licencias ---------- */
+// las fechas viajan como 'AAAA-MM-DD', así que alcanza con comparar strings
+const enLicencia = (mid, fecha) => !!fecha && state.licencias.some(l =>
+  l.musico_id === mid && fecha >= l.desde && (!l.hasta || fecha <= l.hasta));
+// quiénes estaban disponibles en un concierto: los de la fila, sin los que estaban de licencia
+const disponibles = (c, excluir = null) => state.musicos.filter(m =>
+  m.activo && m.id !== excluir && !enLicencia(m.id, c.fecha));
 
 function musicosVisibles() {
   let ms = state.musicos.filter(m => m.activo || $('#verInactivos').checked);
@@ -517,6 +580,8 @@ function render() {
       ${previa ? `<td class="prev">${fmt(arrastre(m.id))}</td>` : ''}
       ${cs.map(c => {
         const v = state.puntos.get(key(c.id, m.id)) ?? 0;
+        if (enLicencia(m.id, c.fecha))
+          return `<td class="cell lic" title="De licencia en esta fecha"><span class="v">L</span></td>`;
         return state.esEditor
           ? `<td class="cell ${v ? '' : 'z'}"><input type="number" step="0.25" min="-6" max="6"
                value="${v}" data-cid="${c.id}" data-mid="${m.id}"></td>`
@@ -670,6 +735,123 @@ $('#eAgregar').onclick = async () => {
   $('#eEmail').value = ''; $('#eMsg').className = 'msg ok';
   $('#eMsg').textContent = 'Listo. Ahora tiene que entrar y crear su clave.';
   renderEditores();
+};
+
+/* ---------- licencias ---------- */
+const fmt2 = n => (Math.round(n * 100) / 100).toString().replace('.', ',');
+const fechaCorta = f => f ? f.slice(8) + '/' + f.slice(5, 7) + '/' + f.slice(0, 4) : '';
+const nombreDe = mid => state.musicos.find(m => m.id === mid)?.nombre ?? '—';
+
+function opcionesMusicos(sel) {
+  return state.musicos.map(m =>
+    `<option value="${m.id}" ${m.id === sel ? 'selected' : ''}>${esc(m.nombre)}${m.activo ? '' : ' (inactivo)'}</option>`).join('');
+}
+
+function renderLicencias() {
+  const ls = [...state.licencias].sort((a, b) => b.desde.localeCompare(a.desde));
+  $('#listaLicencias').innerHTML = ls.length ? ls.map(l =>
+    `<li><b>${esc(nombreDe(l.musico_id))}</b>
+       <span style="color:var(--muted)">${fechaCorta(l.desde)} → ${l.hasta ? fechaCorta(l.hasta) : 'sigue'}${l.motivo ? ' · ' + esc(l.motivo) : ''}</span>
+       <button class="del" data-id="${l.id}">quitar</button></li>`).join('')
+    : '<li style="color:var(--muted);border:0">Todavía no hay licencias cargadas.</li>';
+  $('#lcMusico').innerHTML = opcionesMusicos($('#lcMusico').value);
+  $('#listaLicencias').querySelectorAll('.del').forEach(b => b.onclick = async () => {
+    const { error } = await api.remove('viol_licencias', 'id=eq.' + b.dataset.id);
+    if (error) { $('#lcMsg').className = 'msg err'; $('#lcMsg').textContent = error.message; return; }
+    state.licencias = state.licencias.filter(l => l.id !== b.dataset.id);
+    renderLicencias(); render(); toast('Licencia quitada');
+  });
+}
+
+$('#btnLicencias').onclick = () => {
+  $('#lcMsg').textContent = ''; $('#lcDesde').value = ''; $('#lcHasta').value = ''; $('#lcMotivo').value = '';
+  renderLicencias(); $('#dlgLicencias').showModal();
+};
+
+$('#lcAgregar').onclick = async () => {
+  const msg = $('#lcMsg'); msg.className = 'msg';
+  const musico_id = $('#lcMusico').value;
+  const desde = $('#lcDesde').value;
+  const hasta = $('#lcHasta').value || null;
+  if (!musico_id || !desde) { msg.className = 'msg err'; msg.textContent = 'Elegí el músico y la fecha de inicio.'; return; }
+  if (hasta && hasta < desde) { msg.className = 'msg err'; msg.textContent = 'La fecha de fin es anterior a la de inicio.'; return; }
+  const fila = { musico_id, desde, hasta, motivo: $('#lcMotivo').value.trim() || null };
+  const { error } = await api.insert('viol_licencias', fila);
+  if (error) { msg.className = 'msg err'; msg.textContent = error.message; return; }
+  // el POST no devuelve la fila, así que releemos para tener el id real
+  const { data } = await api.get('viol_licencias', 'select=*&order=desde');
+  state.licencias = data || state.licencias;
+  $('#lcDesde').value = ''; $('#lcHasta').value = ''; $('#lcMotivo').value = '';
+  msg.className = 'msg ok'; msg.textContent = 'Licencia cargada.';
+  renderLicencias(); render();
+};
+
+/* ---------- calculadora de reintegro ---------- */
+function calcularReintegro(mid, desde, hasta) {
+  const enRango = state.conciertos.filter(c => c.fecha && c.fecha >= desde && c.fecha <= hasta);
+  const detalle = enRango.map(c => {
+    const ms = disponibles(c, mid);
+    const suma = ms.reduce((s, m) => s + (state.puntos.get(key(c.id, m.id)) || 0), 0);
+    return { c, n: ms.length, prom: ms.length ? suma / ms.length : 0 };
+  });
+  const promedio = detalle.reduce((s, d) => s + d.prom, 0);
+  // lo que traía: todo lo anterior al inicio de la licencia (los conciertos sin
+  // fecha se imputan por temporada, que es el caso del ajuste de la planilla 2025)
+  const anio = Number(desde.slice(0, 4));
+  const traia = state.conciertos
+    .filter(c => c.fecha ? c.fecha < desde : c.temporada < anio)
+    .reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
+  const propio = enRango.reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
+  return { detalle, promedio, traia, propio };
+}
+
+$('#btnReintegro').onclick = () => {
+  $('#rgMusico').innerHTML = opcionesMusicos($('#rgMusico').value);
+  $('#rgMsg').textContent = ''; $('#rgResu').hidden = true;
+  prellenarFechas();
+  $('#dlgReintegro').showModal();
+};
+
+// si el músico tiene una licencia cargada, se usan sus fechas
+function prellenarFechas() {
+  const mid = $('#rgMusico').value;
+  const l = [...state.licencias].filter(x => x.musico_id === mid).sort((a, b) => b.desde.localeCompare(a.desde))[0];
+  if (!l) return;
+  $('#rgDesde').value = l.desde;
+  $('#rgHasta').value = l.hasta || new Date().toISOString().slice(0, 10);
+}
+$('#rgMusico').onchange = () => { prellenarFechas(); $('#rgResu').hidden = true; };
+
+$('#rgCalcular').onclick = () => {
+  const msg = $('#rgMsg'); msg.className = 'msg';
+  const mid = $('#rgMusico').value, desde = $('#rgDesde').value, hasta = $('#rgHasta').value;
+  if (!mid || !desde || !hasta) { msg.className = 'msg err'; msg.textContent = 'Completá el músico y las dos fechas.'; return; }
+  if (hasta < desde) { msg.className = 'msg err'; msg.textContent = 'La fecha de fin es anterior a la de inicio.'; return; }
+
+  const { detalle, promedio, traia, propio } = calcularReintegro(mid, desde, hasta);
+  if (!detalle.length) {
+    msg.className = 'msg err';
+    msg.textContent = 'No hay conciertos con fecha en ese período.';
+    $('#rgResu').hidden = true; return;
+  }
+  msg.textContent = '';
+  const cuarto = Math.round(promedio * 4) / 4;
+  $('#rgResu').hidden = false;
+  $('#rgResu').innerHTML = `
+    <table>
+      <thead><tr><th>Concierto</th><th>Promedian</th><th>Promedio</th></tr></thead>
+      <tbody>${detalle.map(d => `<tr>
+        <td>${esc(d.c.fecha_texto)} ${esc(d.c.titulo)}</td>
+        <td style="color:var(--muted)">${d.n}</td>
+        <td>${fmt2(d.prom)}</td></tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="margin:12px 0 0">Promedio del período (${detalle.length} concierto${detalle.length > 1 ? 's' : ''}):
+      <b>${fmt2(promedio)}</b>${cuarto !== promedio ? ` <span style="color:var(--muted)">· redondeado a cuartos: ${fmt2(cuarto)}</span>` : ''}</p>
+    <p style="margin:4px 0 0">Traía hasta el ${fechaCorta(desde)}: <b>${fmt2(traia)}</b></p>
+    <p style="margin:8px 0 0">Se reintegra con <span class="big">${fmt2(traia + promedio)}</span></p>
+    ${propio ? `<p class="legend" style="color:var(--warn)">Ojo: ${esc(nombreDe(mid))} ya tiene ${fmt2(propio)} punto(s) cargado(s) dentro del período. Si se los sumás, cuentan dos veces.</p>` : ''}
+    <p class="legend">La columna “Promedian” es cuánta gente de la fila se promedió en cada concierto: los activos, sin ${esc(nombreDe(mid))} ni los que estaban de licencia en esa fecha.</p>`;
 };
 
 /* ---------- varios ---------- */

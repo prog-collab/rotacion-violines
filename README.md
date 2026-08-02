@@ -24,6 +24,23 @@ con lo que traía de antes. La rotación se decide por el total acumulado.
 - Un editor da de alta a otro desde el botón **Editores**. El nuevo editor entra por
   **Ingresar → Crear / restablecer clave**, define su contraseña y ya puede editar.
 
+## Licencias largas y reintegro
+
+Cuando alguien se toma una licencia de larga duración se le carga el período desde el botón
+**Licencias** (músico, desde, hasta — vacío si todavía no volvió). En los conciertos que caen
+dentro del período su celda muestra **L** en vez de un puntaje, y esa persona queda fuera del
+promedio que se calcula para los demás.
+
+Al reintegrarse vuelve con **el puntaje que traía + el promedio de lo que sumaron los demás
+durante su ausencia**. Eso lo calcula el botón **Calcular reintegro**: se elige el músico y las
+dos fechas (se prellenan solas si tiene la licencia cargada) y sale el detalle concierto por
+concierto, el promedio del período y el total con el que se reintegra.
+
+El promedio se arma concierto por concierto: en cada uno se promedia a los músicos activos
+de la fila, sin contar al ausente ni a quien también estuviera de licencia esa fecha, y después
+se suman esos promedios. Así una licencia que arranca o termina en medio del período no
+distorsiona el número. La calculadora **solo muestra** el resultado: los puntos se cargan a mano.
+
 ## Escala de puntaje (desde 2026)
 
 | Puntos | Caso |
