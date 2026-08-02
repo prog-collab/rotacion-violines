@@ -783,7 +783,8 @@ function pintarAtriles() {
   const editable = state.esEditor && modo === 'guardada';
   const moverse = state.esEditor && (modo === 'tocaron' || modo === 'manual');
   $('#fmSugerir').hidden = !editable;
-  $('#fmFijar').hidden = !(editable || moverse) || !donde.size;
+  const puedeFijarOrden = (state.email || '').toLowerCase() === 'jsgiusto@gmail.com';
+  $('#fmFijar').hidden = !(editable || moverse) || !donde.size || !puedeFijarOrden;
   $('#fmVaciar').hidden = !state.esEditor || !atrilesOcupados(c ? c.id : '');
   $('#fmVaciar').textContent = modo === 'manual' ? 'Volver a la formación original' : 'Vaciar';
 
