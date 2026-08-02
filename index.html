@@ -42,6 +42,10 @@
   thead th{position:sticky;top:0;z-index:3;background:var(--panel);font-size:12px;font-weight:600;
     color:var(--muted);padding:8px 10px;vertical-align:bottom;border-bottom:2px solid var(--line)}
   thead th .fecha{display:block;color:var(--accent);font-weight:700}
+  thead th.editable{cursor:pointer}
+  thead th.editable:hover{background:var(--accent-soft)}
+  thead th .lapiz{display:block;font-size:11px;opacity:.45;margin-top:2px}
+  thead th.editable:hover .lapiz{opacity:1;color:var(--accent)}
   th.name,td.name{position:sticky;left:0;z-index:2;background:var(--panel);text-align:left;
     padding:8px 12px;min-width:150px;border-right:1px solid var(--line)}
   thead th.name{z-index:4}
@@ -89,6 +93,47 @@
   .resu th:first-child,.resu td:first-child{text-align:left}
   .resu .big{font-size:22px;font-weight:700;color:var(--accent)}
   .campos{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+  .fmhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:2px}
+  .fmhead h2{margin:0}
+  .fmctrl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex:1}
+  .fmctrl label{font-size:13px;color:var(--muted)}
+  /* el director arriba y los atriles en columna debajo, como se ve la fila desde la platea */
+  .escena{padding:12px 0 6px}
+  .fila{display:flex;flex-direction:column;align-items:center;gap:10px;padding:4px}
+  .podio{width:100%;max-width:380px;display:flex;align-items:center;justify-content:center;gap:8px;
+    font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;
+    border-bottom:1px dashed var(--line);padding-bottom:10px}
+  .podio .bat{font-size:20px;color:var(--accent)}
+  .atril{width:100%;max-width:380px;border:1px solid var(--line);border-radius:12px;padding:8px 8px 10px;
+    background:color-mix(in srgb,var(--accent-soft) 35%,var(--panel))}
+  .atril .cab{display:flex;align-items:center;justify-content:center;gap:6px;
+    font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+  .atril .cab b{color:var(--accent);font-weight:700;font-size:12px}
+  .atril .cab svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round}
+  .sillas{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .silla{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:6px;
+    min-height:70px;display:flex;flex-direction:column;gap:4px}
+  .silla .rol{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .silla .quien{font-size:12.5px;font-weight:600;line-height:1.25;white-space:normal;word-break:break-word}
+  .silla .quien.vacio{color:var(--muted);font-weight:400;font-style:italic}
+  .silla .pts{font-size:11px;color:var(--muted);margin-top:auto}
+  .silla select{width:100%;max-width:100%;font-size:12px;padding:4px 2px;border-radius:6px}
+  .silla select.saving{border-color:var(--warn)}
+  .silla select.saved{border-color:var(--ok)}
+  .silla.lic{border-color:var(--warn)}
+  .silla.lic .rol{color:var(--warn)}
+  .tarjeta{display:flex;flex-direction:column;gap:4px;flex:1;border-radius:6px;padding:2px 4px;margin:-2px -4px}
+  .mover .tarjeta{cursor:grab}
+  .mover .tarjeta:hover{background:var(--accent-soft)}
+  .tarjeta.arrastrando{opacity:.4}
+  .tarjeta.levantada{outline:2px solid var(--accent);background:var(--accent-soft)}
+  .silla.destino{border-color:var(--accent);border-style:dashed;background:var(--accent-soft)}
+  .mover .silla{cursor:pointer}
+  .mover .cab{cursor:grab;border-radius:6px}
+  .mover .cab:hover{background:var(--accent-soft)}
+  .cab.levantada{outline:2px solid var(--accent)}
+  .cab.arrastrando{opacity:.4}
+  .atril.destino{border-color:var(--accent);border-style:dashed}
   #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);
     padding:10px 18px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:50}
   #toast.show{opacity:1}
@@ -113,6 +158,7 @@
     <label style="color:var(--muted);font-size:13px">Ordenar por</label>
     <select id="orden">
       <option value="planilla">Orden de planilla</option>
+      <option value="atril">Por atril</option>
       <option value="total">Puntaje (menor primero)</option>
       <option value="nombre">Nombre</option>
     </select>
@@ -143,6 +189,7 @@
           <span style="font-size:13px;color:var(--muted)">violines</span>
         </div>
         <ol id="listaRotacion"></ol>
+        <p class="legend" id="hastaDonde" hidden></p>
         <p class="legend">Entran primero los de menor puntaje acumulado (arrastre + lo de esta temporada). Los empates se desempatan por el orden de la planilla.</p>
       </div>
 
@@ -156,6 +203,22 @@
         <p class="legend" style="margin-top:8px">Los valores de <b>2025</b> quedaron con la escala vieja (incluye 0,75), tal cual la planilla original.</p>
       </div>
     </div>
+  </div>
+
+  <div class="card side" style="margin-top:16px">
+    <div class="fmhead">
+      <h2>Formación en el escenario</h2>
+      <div class="fmctrl">
+        <label for="fmConcierto">Concierto</label>
+        <select id="fmConcierto"></select>
+        <span style="flex:1"></span>
+        <button class="btn edit-only" id="fmSugerir" hidden>Armar por rotación</button>
+        <button class="btn edit-only" id="fmFijar" hidden>Fijar orden de la fila</button>
+        <button class="btn edit-only" id="fmVaciar" hidden>Vaciar</button>
+      </div>
+    </div>
+    <div class="escena"><div class="fila" id="fila"></div></div>
+    <p class="legend" id="fmPie"></p>
   </div>
 
   <p class="foot">Los datos se guardan en Supabase. Editan solo los emails autorizados; el resto de la fila ve la tabla sin necesidad de ingresar.</p>
@@ -237,6 +300,20 @@
   <input type="text" id="cTitulo" placeholder="Beethoven 5ª">
   <label>Semanas de ensayo (opcional)</label>
   <input type="number" id="cSemanas" step="0.5" min="0" placeholder="1">
+  <label style="display:flex;align-items:center;gap:8px;margin-top:14px">
+    <input type="checkbox" id="cAjuste" style="width:auto"> Es un ajuste de puntaje, no un concierto
+  </label>
+  <p class="legend" style="margin:4px 0 0">Los ajustes suman en la tabla pero no aparecen en la formación del escenario.</p>
+  <div id="cAutoBox" style="margin-top:14px;border-top:1px solid var(--line);padding-top:6px">
+    <label style="display:flex;align-items:center;gap:8px">
+      <input type="checkbox" id="cAuto" checked style="width:auto"> Cargar los puntajes de una
+    </label>
+    <div class="campos">
+      <div><label>Violines</label><input type="number" id="cCupo" min="1" max="40"></div>
+      <div><label>Puntos a cada uno</label><input type="number" id="cPuntos" step="0.25" min="0" max="6" value="1"></div>
+    </div>
+    <p class="legend" style="margin:6px 0 0">Se los llevan los de menor puntaje acumulado, salteando a los que están de licencia. Después se editan a mano en la tabla.</p>
+  </div>
   <div class="msg" id="cMsg"></div>
   <div class="row">
     <button class="btn" id="cBorrar" style="margin-right:auto;color:#c0392b" hidden>Eliminar</button>
@@ -272,6 +349,15 @@
   </div>
 </dialog>
 
+<dialog id="dlgConfirmar">
+  <h3 id="cfTitulo">¿Seguro?</h3>
+  <p class="legend" id="cfTexto" style="margin:0"></p>
+  <div class="row">
+    <button class="btn" id="cfNo">Cancelar</button>
+    <button class="btn primary" id="cfSi">Sí</button>
+  </div>
+</dialog>
+
 <div id="toast"></div>
 
 <script type="module">
@@ -299,7 +385,8 @@ async function rest(metodo, tabla, { query = '', body = null, prefer = '' } = {}
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/${tabla}${query ? '?' + query : ''}`, {
       method: metodo, headers: headers(prefer ? { Prefer: prefer } : {}),
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store' // si no, "Refrescar" puede devolver lo que quedó en el caché del navegador
     });
     if (r.status === 401 && sesion?.refresh_token && await auth.refrescar())
       return rest(metodo, tabla, { query, body, prefer });
@@ -314,7 +401,7 @@ async function rest(metodo, tabla, { query = '', body = null, prefer = '' } = {}
 
 const api = {
   get: (tabla, query) => rest('GET', tabla, { query }),
-  insert: (tabla, body) => rest('POST', tabla, { body }),
+  insert: (tabla, body) => rest('POST', tabla, { body, prefer: 'return=representation' }),
   upsert: (tabla, body) => rest('POST', tabla, { body, prefer: 'resolution=merge-duplicates' }),
   update: (tabla, query, body) => rest('PATCH', tabla, { query, body }),
   remove: (tabla, query) => rest('DELETE', tabla, { query })
@@ -378,13 +465,30 @@ const auth = {
 
 const $ = s => document.querySelector(s);
 const fmt = n => (Number(n) || 0).toString().replace('.', ',');
-let state = { musicos: [], conciertos: [], puntos: new Map(), licencias: [], temporada: null, esEditor: false, email: null };
+let state = { musicos: [], conciertos: [], puntos: new Map(), licencias: [], formacion: new Map(),
+  temporada: null, esEditor: false, email: null };
+
+/* Confirmación propia: el confirm() del navegador no aparece en algunos visores
+   (paneles embebidos, iframes sin modales) y devuelve "cancelar" sin preguntar nada. */
+function confirmar(texto, aceptar = 'Sí') {
+  const dlg = $('#dlgConfirmar');
+  $('#cfTexto').textContent = texto;
+  $('#cfSi').textContent = aceptar;
+  dlg.showModal();
+  return new Promise(r => {
+    const cerrar = (v) => { dlg.close(); $('#cfSi').onclick = $('#cfNo').onclick = null; r(v); };
+    $('#cfSi').onclick = () => cerrar(true);
+    $('#cfNo').onclick = () => cerrar(false);
+    dlg.onclose = () => r(false);
+  });
+}
 
 const toast = (t) => {
   const el = $('#toast'); el.textContent = t; el.classList.add('show');
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 2200);
 };
 const key = (c, m) => c + '|' + m;
+const sillaKey = (c, atril, silla) => `${c}|${atril}|${silla}`;
 
 /* ---------- sesión ---------- */
 async function refrescarSesion() {
@@ -501,15 +605,19 @@ $('#liSignup').onclick = async () => {
 
 /* ---------- datos ---------- */
 async function cargar() {
-  const [mus, con, lic] = await Promise.all([
+  const [mus, con, lic, fmc] = await Promise.all([
     api.get('viol_musicos', 'select=*&order=orden'),
     api.get('viol_conciertos', 'select=*&order=temporada,orden'),
-    api.get('viol_licencias', 'select=*&order=desde')
+    api.get('viol_licencias', 'select=*&order=desde'),
+    api.get('viol_formacion', 'select=*')
   ]);
   if (mus.error || con.error) { toast('Error cargando datos: ' + (mus.error || con.error).message); return; }
   state.musicos = mus.data;
   state.conciertos = con.data;
   state.licencias = lic.data || [];
+  state.formacion = new Map((fmc.data || [])
+    .filter(f => f.musico_id)
+    .map(f => [sillaKey(f.concierto_id, f.atril, f.silla), f.musico_id]));
 
   const conTemporada = [...new Set(state.conciertos.map(c => c.temporada))];
   const anioActual = new Date().getFullYear();
@@ -548,7 +656,8 @@ const disponibles = (c, excluir = null) => state.musicos.filter(m =>
 function musicosVisibles() {
   let ms = state.musicos.filter(m => m.activo || $('#verInactivos').checked);
   const o = $('#orden').value;
-  if (o === 'total') ms = [...ms].sort((a, b) =>
+  if (o === 'atril') ms = [...ms].sort((a, b) => posFila(a) - posFila(b));
+  else if (o === 'total') ms = [...ms].sort((a, b) =>
     totalTemporada(a.id) - totalTemporada(b.id) || totalHistorico(a.id) - totalHistorico(b.id) || a.orden - b.orden);
   else if (o === 'nombre') ms = [...ms].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   return ms;
@@ -564,8 +673,8 @@ function render() {
   $('#tabla').tHead.innerHTML = '<tr>' +
     `<th class="name">Músico</th><th class="total">Total<br><span style="font-weight:400">${state.temporada}</span></th>` +
     (previa ? `<th class="prev">Arrastre<br><span style="font-weight:400">${previa}</span></th>` : '') +
-    cs.map(c => `<th data-cid="${c.id}" ${state.esEditor ? 'style="cursor:pointer" title="Editar concierto"' : ''}>
-        <span class="fecha">${esc(c.fecha_texto)}</span>${esc(c.titulo)}</th>`).join('') +
+    cs.map(c => `<th data-cid="${c.id}" ${state.esEditor ? 'class="editable" title="Editar o eliminar este concierto"' : ''}>
+        <span class="fecha">${esc(c.fecha_texto)}</span>${esc(c.titulo)}${state.esEditor ? '<span class="lapiz">✎</span>' : ''}</th>`).join('') +
     (state.esEditor && cs.length === 0 ? '<th style="padding:14px;color:var(--muted)">Agregá el primer concierto →</th>' : '') +
     '</tr>';
 
@@ -601,6 +710,7 @@ function render() {
       td.ondblclick = () => abrirMusico(state.musicos.find(m => m.id === td.parentElement.dataset.mid)));
   }
   renderRotacion(ranking);
+  renderFormacion();
 }
 
 function renderRotacion(ranking) {
@@ -608,7 +718,400 @@ function renderRotacion(ranking) {
   $('#listaRotacion').innerHTML = ranking.map((m, i) =>
     `<li class="${i < cupo ? '' : 'out'}">${esc(m.nombre)} <span style="color:var(--muted)">· ${fmt(totalTemporada(m.id))}</span></li>`
   ).join('');
+
+  // hasta dónde llega el acumulado que se está mirando
+  const ult = ultimoConPuntajes();
+  $('#hastaDonde').hidden = !ult;
+  if (ult) $('#hastaDonde').innerHTML =
+    `Ya están sumados los puntos del <b>${esc(ult.fecha_texto)}${ult.titulo ? ' · ' + esc(ult.titulo) : ''}</b>.`;
 }
+
+// el último concierto (o ajuste) que tiene puntajes cargados: state.conciertos viene por temporada y orden
+const ultimoConPuntajes = () => [...state.conciertos].reverse()
+  .find(c => state.musicos.some(m => (state.puntos.get(key(c.id, m.id)) || 0) !== 0)) ?? null;
+
+/* ---------- formación en el escenario ---------- */
+/* Cada atril tiene dos sillas: la 1 es la de la derecha y la 2 la de la izquierda.
+   El atril 1 es el del concertino, pegado al director. */
+const rolSilla = (atril, silla) =>
+  atril === 1 ? (silla === 1 ? 'Concertino' : 'Suplente') : (silla === 1 ? 'Derecha' : 'Izquierda');
+
+const conciertoFormacion = () => state.conciertos.find(c => c.id === $('#fmConcierto').value) || null;
+// la cantidad de atriles sale de la gente: dos por atril, redondeando para arriba
+const atrilesPara = (musicos) => Math.max(1, Math.ceil(musicos / 2));
+// el mayor atril que ya tiene gente sentada, para no esconder sillas cargadas
+const atrilesOcupados = (cid) => [...state.formacion.keys()]
+  .filter(k => k.startsWith(cid + '|'))
+  .reduce((m, k) => Math.max(m, Number(k.split('|')[1])), 0);
+// cuántos violines pide el concierto: el número del panel de rotación
+const cupoViolines = () => Math.max(1, Number($('#cupo').value) || 1);
+
+const BASE = 'base'; // opción del desplegable: la fila completa, sin concierto
+
+function renderFormacion() {
+  // los ajustes de puntaje suman en la tabla pero no son conciertos: no tienen formación
+  const cs = conciertosTemporada().filter(c => !c.ajuste);
+  const sel = $('#fmConcierto');
+  const previo = sel.value;
+  sel.innerHTML = `<option value="${BASE}">Formación original (fila completa)</option>` +
+    cs.map(c => `<option value="${c.id}">${esc(c.fecha_texto)} · ${esc(c.titulo)}</option>`).join('');
+  if (previo === BASE || cs.some(c => c.id === previo)) sel.value = previo;
+  else if (cs.length) sel.value = (proximoConcierto(cs) || cs[cs.length - 1]).id;
+  pintarAtriles();
+}
+
+// el primero que todavía no pasó; si ya pasaron todos, el último de la temporada
+const proximoConcierto = (cs) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  return cs.find(c => c.fecha && c.fecha >= hoy) || null;
+};
+
+function pintarAtriles() {
+  const fila = $('#fila'), pie = $('#fmPie');
+  const c = conciertoFormacion();
+  if (!c && $('#fmConcierto').value !== BASE) {
+    fila.innerHTML = '<p class="legend" style="padding:8px">Esta temporada todavía no tiene conciertos cargados.</p>';
+    pie.textContent = ''; return;
+  }
+  const { puestos, n, modo } = ocupacion(c);
+  // dónde está sentado cada músico, para avisar en el desplegable
+  const donde = new Map();
+  puestos.forEach((mid, i) => {
+    if (mid) donde.set(mid, `atril ${Math.floor(i / 2) + 1} ${rolSilla(Math.floor(i / 2) + 1, i % 2 + 1).toLowerCase()}`);
+  });
+  // con los puntajes cargados las tarjetas se arrastran; sin ellos se elige por desplegable
+  const editable = state.esEditor && modo === 'guardada';
+  const moverse = state.esEditor && (modo === 'tocaron' || modo === 'manual');
+  $('#fmSugerir').hidden = !editable;
+  $('#fmFijar').hidden = !(editable || moverse) || !donde.size;
+  $('#fmVaciar').hidden = !state.esEditor || !atrilesOcupados(c ? c.id : '');
+  $('#fmVaciar').textContent = modo === 'manual' ? 'Volver a la formación original' : 'Vaciar';
+
+  vista = { c, puestos, n };
+  levantada = null;
+  fila.className = 'fila' + (moverse ? ' mover' : '');
+  fila.innerHTML = `<div class="podio"><span class="bat">🎼</span>Director</div>` +
+    Array.from({ length: n }, (_, i) => atrilHTML(c, i + 1, donde, puestos, editable, moverse)).join('');
+
+  if (editable) fila.querySelectorAll('select').forEach(s =>
+    s.addEventListener('change', () => guardarSilla(s)));
+  if (moverse) activarArrastre(fila);
+
+  const afuera = state.musicos.filter(m =>
+    m.activo && !donde.has(m.id) && (!c || !enLicencia(m.id, c.fecha)));
+
+  const cabeza = {
+    base: 'Fila completa, en el orden en que se sienta cuando tocan todos. Incluye a los que están de licencia.',
+    tocaron: 'Sentados los que tienen puntaje en este concierto, en el orden de la fila.' +
+      (moverse ? ' Arrastrá una tarjeta a otra silla y la fila se corre sola; arrastrá la cabecera del atril para mover a los dos juntos.' : ''),
+    manual: 'Distribución acomodada a mano.' +
+      (moverse ? ' Se sigue moviendo arrastrando tarjetas o atriles; el botón vuelve a la formación original.' : ''),
+    guardada: editable
+      ? 'Este concierto todavía no tiene puntajes: elegí el nombre en cada silla. Si alguien ya estaba sentado en otro atril, se mueve solo.'
+      : 'Este concierto todavía no tiene puntajes cargados: esta es la formación prevista.'
+  }[modo];
+
+  pie.innerHTML = `${donde.size} de ${n * 2} sillas ocupadas. ${cabeza}` +
+    (afuera.length && modo !== 'base'
+      ? `<br>No ${modo === 'guardada' ? 'tocan' : 'tocaron'} este concierto: <b>${afuera.map(m => esc(m.nombre)).join(', ')}</b>.` : '');
+}
+
+/* ---------- mover músicos y atriles ---------- */
+let vista = null;     // lo que se está mostrando: { c, puestos, n }
+let levantada = null; // { tipo, i } elegido con un click, esperando destino (para pantalla táctil)
+
+const esMismo = (a, b) => a && b && a.tipo === b.tipo && a.i === b.i;
+// la silla i pertenece al atril (i / 2) + 1
+const atrilDe = (i) => Math.floor(i / 2) + 1;
+
+function activarArrastre(fila) {
+  const arrastrable = (el, ref, imagen) => {
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', ref.tipo + ':' + ref.i);
+      e.dataTransfer.effectAllowed = 'move';
+      if (imagen) e.dataTransfer.setDragImage(imagen, 20, 20);
+      el.classList.add('arrastrando');
+    });
+    el.addEventListener('dragend', () => el.classList.remove('arrastrando'));
+  };
+  const soltable = (el, ref, marca) => {
+    el.addEventListener('dragover', e => { e.preventDefault(); marca.classList.add('destino'); });
+    el.addEventListener('dragleave', () => marca.classList.remove('destino'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); e.stopPropagation(); marca.classList.remove('destino');
+      const [tipo, i] = e.dataTransfer.getData('text/plain').split(':');
+      mover({ tipo, i: Number(i) }, ref);
+    });
+  };
+
+  fila.querySelectorAll('.tarjeta').forEach(t => {
+    const ref = { tipo: 'silla', i: Number(t.dataset.i) };
+    arrastrable(t, ref);
+    t.addEventListener('click', e => { e.stopPropagation(); elegir(ref, fila); });
+  });
+  fila.querySelectorAll('.silla').forEach(s => {
+    const ref = { tipo: 'silla', i: Number(s.dataset.i) };
+    soltable(s, ref, s);
+    // el destino por click solo cuenta si antes se levantó algo a propósito
+    s.addEventListener('click', () => { if (levantada) elegir(ref, fila); });
+  });
+  fila.querySelectorAll('.cab[data-atril]').forEach(cab => {
+    const ref = { tipo: 'atril', i: Number(cab.dataset.atril) };
+    const caja = cab.closest('.atril');
+    arrastrable(cab, ref, caja);
+    soltable(cab, ref, caja);
+    cab.addEventListener('click', e => { e.stopPropagation(); elegir(ref, fila); });
+  });
+}
+
+/* Alternativa al arrastre para pantallas táctiles: se toca lo que se quiere mover y
+   después el destino. El primer toque tiene que ser sobre una tarjeta o sobre la cabecera
+   de un atril, así un click al azar en el gráfico no mueve a nadie. */
+function elegir(ref, fila) {
+  const marca = ref.tipo === 'silla'
+    ? fila.querySelector(`.tarjeta[data-i="${ref.i}"]`)
+    : fila.querySelector(`.cab[data-atril="${ref.i}"]`);
+  if (!levantada) {
+    if (ref.tipo === 'silla' && !vista.puestos[ref.i]) return;
+    levantada = ref;
+    marca?.classList.add('levantada');
+    toast(ref.tipo === 'silla' ? 'Ahora tocá la silla a donde va' : 'Ahora tocá el atril con el que se cambia');
+    return;
+  }
+  if (esMismo(levantada, ref)) { soltar(); return; }
+  mover(levantada, ref);
+}
+
+// cancelar lo levantado: con Escape o tocando fuera del gráfico
+function soltar() {
+  if (!levantada) return;
+  levantada = null;
+  document.querySelectorAll('#fila .levantada').forEach(el => el.classList.remove('levantada'));
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') soltar(); });
+document.addEventListener('click', e => { if (!e.target.closest('#fila')) soltar(); });
+
+/* La fila no se intercambia: lo que se mueve se saca de su lugar y se mete en el destino,
+   y los que quedan en el medio avanzan (o retroceden) un lugar. Con un atril se mueven las
+   dos sillas juntas. */
+async function mover(desde, hasta) {
+  levantada = null;
+  if (!vista || !desde) { pintarAtriles(); return; }
+  const lista = vista.puestos.filter(Boolean);
+
+  if (desde.tipo === 'atril' || hasta.tipo === 'atril') {
+    const a = desde.tipo === 'atril' ? desde.i : atrilDe(desde.i);
+    const b = hasta.tipo === 'atril' ? hasta.i : atrilDe(hasta.i);
+    if (a === b) { pintarAtriles(); return; }
+    const par = lista.splice((a - 1) * 2, 2);
+    lista.splice(Math.min((b - 1) * 2, lista.length), 0, ...par);
+  } else {
+    const quien = vista.puestos[desde.i];
+    if (!quien || desde.i === hasta.i) { pintarAtriles(); return; }
+    lista.splice(lista.indexOf(quien), 1);
+    lista.splice(Math.max(0, Math.min(hasta.i, lista.length)), 0, quien);
+  }
+  await guardarDistribucion(vista.c, lista);
+}
+
+/* Guarda la fila completa: tantas sillas como hagan falta para la gente que hay,
+   ni una más. La silla que sobra cuando son impares queda en null. */
+async function guardarDistribucion(c, lista) {
+  const sillas = Array.from({ length: atrilesPara(lista.length) * 2 }, (_, i) => lista[i] ?? null);
+  const filas = sillas.map((mid, i) => filaSilla(c.id, Math.floor(i / 2) + 1, i % 2 + 1, mid));
+  const { error } = await api.upsert('viol_formacion', filas);
+  if (error) { toast('No se pudo guardar: ' + error.message); return; }
+  // si la fila se achicó, los atriles que sobraron se borran
+  await api.remove('viol_formacion', `concierto_id=eq.${c.id}&atril=gt.${sillas.length / 2}`);
+  [...state.formacion.keys()].filter(k => k.startsWith(c.id + '|')).forEach(k => state.formacion.delete(k));
+  filas.forEach(f => { if (f.musico_id) state.formacion.set(sillaKey(f.concierto_id, f.atril, f.silla), f.musico_id); });
+  pintarAtriles();
+}
+
+/* Quién ocupa cada silla, de adelante hacia atrás (índice 0 = atril 1 derecha). Tres casos:
+   - 'base'    → la fila completa por orden de fila, con licencias e inactivos incluidos
+   - 'tocaron' → los que tocaron ese concierto, en el orden de la fila
+   - 'guardada'→ el concierto todavía no tiene puntajes: vale lo que cargó el administrador
+   Es una vista: solo el caso 'guardada' se guarda. */
+function ocupacion(c) {
+  let modo, secuencia, n0;
+  if (!c) {
+    // la fila completa son los activos más los que están de licencia (no los dados de baja)
+    modo = 'base';
+    secuencia = state.musicos
+      .filter(m => m.activo || state.licencias.some(l => l.musico_id === m.id && !l.hasta))
+      .sort((a, b) => posFila(a) - posFila(b)).map(m => m.id);
+  } else {
+    // el que está de licencia no ocupa silla, igual que el que tiene cero
+    const tocaron = state.musicos.filter(m =>
+      (state.puntos.get(key(c.id, m.id)) || 0) > 0 && !enLicencia(m.id, c.fecha))
+      .sort((a, b) => posFila(a) - posFila(b));
+    const movida = atrilesOcupados(c.id);
+    if (movida) {
+      // el editor movió las tarjetas: manda lo que quedó guardado
+      modo = tocaron.length ? 'manual' : 'guardada';
+      n0 = tocaron.length ? movida : Math.max(movida, atrilesPara(cupoViolines()));
+    } else if (tocaron.length) { modo = 'tocaron'; secuencia = tocaron.map(m => m.id); }
+    else { modo = 'guardada'; n0 = atrilesPara(cupoViolines()); }
+
+    if (modo === 'guardada' || modo === 'manual') {
+      secuencia = [];
+      for (let a = 1; a <= n0; a++) for (const s of [1, 2])
+        secuencia.push(state.formacion.get(sillaKey(c.id, a, s)) || null);
+    }
+  }
+
+  if (modo === 'guardada' || modo === 'manual') return { puestos: secuencia, n: n0, modo };
+  const n = atrilesPara(secuencia.length);
+  return { puestos: Array.from({ length: n * 2 }, (_, i) => secuencia[i] ?? null), n, modo };
+}
+
+function atrilHTML(c, atril, donde, puestos, editable, moverse) {
+  // se pintan de izquierda a derecha, así que la silla 2 va primero y la 1 queda a la derecha
+  const sillas = [2, 1].map(s => {
+    const i = (atril - 1) * 2 + (s - 1);
+    const mid = puestos[i] || '';
+    const m = state.musicos.find(x => x.id === mid);
+    const lic = m && enLicencia(m.id, c ? c.fecha : null);
+    const nombre = `<span class="quien ${m ? '' : 'vacio'}">${m ? esc(m.nombre) : '—'}</span>
+      ${m ? `<span class="pts">${fmt(totalTemporada(m.id))} pts</span>` : ''}`;
+    return `<div class="silla ${lic ? 'lic' : ''}" data-i="${i}" ${lic ? 'title="De licencia en esta fecha"' : ''}>
+      <span class="rol">${rolSilla(atril, s)}${lic ? ' · licencia' : ''}</span>
+      ${editable
+        ? `<select data-cid="${c.id}" data-atril="${atril}" data-silla="${s}"
+             title="${esc(m?.nombre ?? 'Silla vacía')}">${opcionesSilla(c, mid, donde)}</select>
+           ${m ? `<span class="pts">${fmt(totalTemporada(m.id))} pts</span>` : ''}`
+        : moverse && m
+          ? `<div class="tarjeta" draggable="true" data-i="${i}" title="Arrastrala a otra silla">${nombre}</div>`
+          : nombre}
+    </div>`;
+  }).join('');
+
+  return `<div class="atril" data-atril="${atril}">
+    <div class="cab" data-atril="${atril}" ${moverse ? 'draggable="true" title="Arrastrá el atril para moverlo con sus dos músicos"' : ''}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14l-1.5 4h-11z"/><path d="M12 10v9"/><path d="M8 20l4-1.5 4 1.5"/></svg>
+      Atril <b>${atril}</b>
+    </div>
+    <div class="sillas">${sillas}</div>
+  </div>`;
+}
+
+function opcionesSilla(c, actual, donde) {
+  const elegibles = state.musicos.filter(m => m.activo || m.id === actual)
+    .sort((a, b) => posFila(a) - posFila(b));
+  return `<option value="">— vacía —</option>` + elegibles.map(m => {
+    const nota = m.id === actual ? ''
+      : donde.has(m.id) ? ` · ${donde.get(m.id)}`
+      : enLicencia(m.id, c.fecha) ? ' · de licencia' : '';
+    return `<option value="${m.id}" ${m.id === actual ? 'selected' : ''}
+      >${esc(m.nombre)} (${fmt(totalTemporada(m.id))})${nota}</option>`;
+  }).join('');
+}
+
+async function guardarSilla(sel) {
+  const cid = sel.dataset.cid, atril = Number(sel.dataset.atril), silla = Number(sel.dataset.silla);
+  const musico_id = sel.value || null;
+  // nadie puede estar en dos sillas: si ya estaba sentado en otro lado, se libera esa
+  const anterior = musico_id
+    ? [...state.formacion.entries()].find(([k, v]) =>
+        v === musico_id && k.startsWith(cid + '|') && k !== sillaKey(cid, atril, silla))
+    : null;
+
+  const filas = [filaSilla(cid, atril, silla, musico_id)];
+  if (anterior) {
+    const [, a, s] = anterior[0].split('|');
+    filas.push(filaSilla(cid, Number(a), Number(s), null));
+  }
+  sel.className = 'saving';
+  const { error } = await api.upsert('viol_formacion', filas);
+  if (error) { sel.className = ''; toast('No se pudo guardar: ' + error.message); return; }
+
+  if (musico_id) state.formacion.set(sillaKey(cid, atril, silla), musico_id);
+  else state.formacion.delete(sillaKey(cid, atril, silla));
+  if (anterior) state.formacion.delete(anterior[0]);
+  pintarAtriles();
+  if (anterior) toast(`Ya estaba en el atril ${anterior[0].split('|')[1]}: esa silla quedó libre`);
+}
+
+const filaSilla = (cid, atril, silla, musico_id) => ({
+  concierto_id: cid, atril, silla, musico_id,
+  actualizado_en: new Date().toISOString(), actualizado_por: state.email
+});
+
+$('#fmConcierto').onchange = pintarAtriles;
+
+/* Borra lo movido a mano. Si el concierto tiene puntajes, la formación vuelve a salir
+   de ellos; si todavía no los tiene, quedan las sillas vacías. */
+$('#fmVaciar').onclick = async () => {
+  const c = conciertoFormacion();
+  if (!c) return;
+  const volver = $('#fmVaciar').textContent.startsWith('Volver');
+  if (!await confirmar(volver
+    ? `Se deshacen los movimientos y la formación de "${c.titulo}" vuelve a salir de los puntajes.`
+    : `Se borra la formación cargada para "${c.titulo}".`, volver ? 'Volver al original' : 'Vaciar')) return;
+  const { error } = await api.remove('viol_formacion', 'concierto_id=eq.' + c.id);
+  if (error) { toast('No se pudo borrar: ' + error.message); return; }
+  [...state.formacion.keys()].filter(k => k.startsWith(c.id + '|')).forEach(k => state.formacion.delete(k));
+  pintarAtriles(); toast(volver ? 'Volvió a la formación original' : 'Formación vacía');
+};
+
+/* Quiénes entran lo decide la rotación (menor puntaje acumulado primero), pero dónde se
+   sientan lo decide el orden de la fila completa: cuando el concierto lleva menos violines,
+   los que tocan se corren hacia adelante manteniendo el orden relativo entre ellos.
+   Es un punto de partida: el administrador después mueve a quien quiera. */
+const posFila = (m) => m.orden_fila ?? 90 + m.orden;
+// el criterio de la rotación: menos puntos acumulados primero, y a igualdad, el orden de la fila
+const porRotacion = (a, b) => totalHistorico(a.id) - totalHistorico(b.id) || posFila(a) - posFila(b);
+
+$('#fmSugerir').onclick = async () => {
+  const c = conciertoFormacion();
+  if (!c) return;
+  const n = atrilesPara(cupoViolines());
+  const hay = [...state.formacion.keys()].some(k => k.startsWith(c.id + '|'));
+  if (hay && !await confirmar('Esto reemplaza la formación que ya está cargada.', 'Reemplazar')) return;
+  if (hay) await api.remove('viol_formacion', 'concierto_id=eq.' + c.id);
+
+  const entran = state.musicos.filter(m => m.activo && !enLicencia(m.id, c.fecha))
+    .sort(porRotacion)
+    .slice(0, cupoViolines())
+    .sort((a, b) => posFila(a) - posFila(b));
+
+  const filas = [];
+  let i = 0;
+  for (let a = 1; a <= n; a++) for (const s of [1, 2]) filas.push(filaSilla(c.id, a, s, entran[i++]?.id ?? null));
+  const { error } = await api.upsert('viol_formacion', filas);
+  if (error) { toast('No se pudo guardar: ' + error.message); return; }
+  [...state.formacion.keys()].filter(k => k.startsWith(c.id + '|')).forEach(k => state.formacion.delete(k));
+  filas.forEach(f => f.musico_id
+    ? state.formacion.set(sillaKey(f.concierto_id, f.atril, f.silla), f.musico_id)
+    : state.formacion.delete(sillaKey(f.concierto_id, f.atril, f.silla)));
+  pintarAtriles();
+  toast(entran.length < cupoViolines()
+    ? `Listo, pero solo hay ${entran.length} disponibles para ${cupoViolines()} violines`
+    : `Formación armada para ${cupoViolines()} violines`);
+};
+
+/* El orden de la fila completa se guarda en viol_musicos.orden_fila. Este botón lo
+   redefine a partir de la formación que se está viendo (primero los sentados, en orden
+   de atril y silla; atrás, el resto como venía). */
+$('#fmFijar').onclick = async () => {
+  const c = conciertoFormacion();
+  if (!c) return;
+  const sentados = (vista?.puestos ?? []).filter((mid, i, todos) => mid && todos.indexOf(mid) === i);
+  if (!sentados.length) { toast('No hay nadie sentado para tomar como orden'); return; }
+  if (!await confirmar('Esta formación pasa a ser el orden de la fila completa: es la base para armar los conciertos con menos violines.', 'Fijar orden')) return;
+
+  const resto = [...state.musicos].filter(m => !sentados.includes(m.id)).sort((a, b) => posFila(a) - posFila(b));
+  const nuevo = [...sentados, ...resto.map(m => m.id)];
+  for (const [i, mid] of nuevo.entries()) {
+    const { error } = await api.update('viol_musicos', 'id=eq.' + mid, { orden_fila: i + 1 });
+    if (error) { toast('No se pudo guardar el orden: ' + error.message); return; }
+    const m = state.musicos.find(x => x.id === mid);
+    if (m) m.orden_fila = i + 1;
+  }
+  pintarAtriles();
+  toast('Orden de la fila actualizado');
+};
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -638,11 +1141,22 @@ function abrirConcierto(c) {
   $('#cFechaTexto').value = c?.fecha_texto ?? '';
   $('#cTitulo').value = c?.titulo ?? '';
   $('#cSemanas').value = c?.semanas_ensayo ?? '';
+  $('#cAjuste').checked = !!c?.ajuste;
   $('#cBorrar').hidden = !c;
+  $('#cCupo').value = cupoViolines();
+  $('#cPuntos').value = 1;
+  $('#cAuto').checked = !c;
+  mostrarAuto();
   $('#cMsg').textContent = '';
   $('#dlgConcierto').showModal();
 }
 $('#btnConcierto').onclick = () => abrirConcierto(null);
+
+// los puntajes solo se autocompletan al crear un concierto de verdad
+const mostrarAuto = () => $('#cAutoBox').hidden = !!conciertoEdit || $('#cAjuste').checked;
+$('#cAjuste').onchange = mostrarAuto;
+// dos semanas de ensayo valen el doble: es el default más común
+$('#cSemanas').onchange = () => { $('#cPuntos').value = Number($('#cSemanas').value) >= 2 ? 2 : 1; };
 
 $('#cFecha').onchange = () => {
   if (!$('#cFechaTexto').value && $('#cFecha').value) {
@@ -658,25 +1172,50 @@ $('#cGuardar').onclick = async () => {
   if (!titulo) { $('#cMsg').className = 'msg err'; $('#cMsg').textContent = 'Falta el título.'; return; }
   const semanas = $('#cSemanas').value === '' ? null : Number($('#cSemanas').value);
   const temporada = fecha ? Number(fecha.slice(0, 4)) : state.temporada;
-  let error;
+  const ajuste = $('#cAjuste').checked;
+  let error, nuevo = null;
   if (conciertoEdit) {
     ({ error } = await api.update('viol_conciertos', 'id=eq.' + conciertoEdit.id,
-      { fecha, fecha_texto, titulo, semanas_ensayo: semanas, temporada }));
+      { fecha, fecha_texto, titulo, semanas_ensayo: semanas, temporada, ajuste }));
   } else {
     const maxOrden = Math.max(0, ...state.conciertos.filter(c => c.temporada === temporada).map(c => c.orden));
-    ({ error } = await api.insert('viol_conciertos',
-      { fecha, fecha_texto, titulo, semanas_ensayo: semanas, temporada, orden: maxOrden + 1 }));
+    const r = await api.insert('viol_conciertos',
+      { fecha, fecha_texto, titulo, semanas_ensayo: semanas, temporada, orden: maxOrden + 1, ajuste });
+    error = r.error; nuevo = r.data?.[0] ?? null;
   }
   if (error) { $('#cMsg').className = 'msg err'; $('#cMsg').textContent = error.message; return; }
+
+  let cargados = 0;
+  if (nuevo && !ajuste && $('#cAuto').checked) cargados = await autocompletar(nuevo);
+
   $('#dlgConcierto').close();
   state.temporada = temporada;
   await cargar(); $('#temporada').value = state.temporada; render();
-  toast('Concierto guardado');
+  toast(cargados ? `Concierto guardado con ${cargados} puntajes cargados` : 'Concierto guardado');
 };
+
+/* Deja cargado el puntaje del concierto a los que menos tienen acumulado, para no
+   tipear catorce celdas. Es un punto de partida: en la tabla se editan como siempre. */
+async function autocompletar(c) {
+  const puntos = Number($('#cPuntos').value);
+  const cuantos = Math.max(0, Number($('#cCupo').value) || 0);
+  if (!puntos || !cuantos) return 0;
+
+  const entran = state.musicos.filter(m => m.activo && !enLicencia(m.id, c.fecha))
+    .sort(porRotacion).slice(0, cuantos);
+  if (!entran.length) return 0;
+
+  const { error } = await api.upsert('viol_participaciones', entran.map(m => ({
+    concierto_id: c.id, musico_id: m.id, puntos,
+    actualizado_en: new Date().toISOString(), actualizado_por: state.email
+  })));
+  if (error) { toast('El concierto se creó, pero no se pudieron cargar los puntajes: ' + error.message); return 0; }
+  return entran.length;
+}
 
 $('#cBorrar').onclick = async () => {
   if (!conciertoEdit) return;
-  if (!confirm(`¿Eliminar "${conciertoEdit.titulo}" y todos sus puntajes?`)) return;
+  if (!await confirmar(`Se elimina "${conciertoEdit.titulo}" con todos sus puntajes y su formación.`, 'Eliminar')) return;
   const { error } = await api.remove('viol_conciertos', 'id=eq.' + conciertoEdit.id);
   if (error) { $('#cMsg').className = 'msg err'; $('#cMsg').textContent = error.message; return; }
   $('#dlgConcierto').close();
@@ -720,7 +1259,7 @@ async function renderEditores() {
       : `<button class="btn" data-quitar="${esc(e.email)}" style="padding:2px 8px;font-size:12px;margin-left:6px">quitar</button>`}
     </li>`).join('');
   ul.querySelectorAll('button[data-quitar]').forEach(b => b.onclick = async () => {
-    if (!confirm(`¿Quitar permiso de edición a ${b.dataset.quitar}?`)) return;
+    if (!await confirmar(`${b.dataset.quitar} deja de poder editar.`, 'Quitar')) return;
     const { error } = await api.remove('viol_editores', 'email=eq.' + encodeURIComponent(b.dataset.quitar));
     if (error) { $('#eMsg').className = 'msg err'; $('#eMsg').textContent = error.message; return; }
     renderEditores(); toast('Editor quitado');
@@ -778,7 +1317,6 @@ $('#lcAgregar').onclick = async () => {
   const fila = { musico_id, desde, hasta, motivo: $('#lcMotivo').value.trim() || null };
   const { error } = await api.insert('viol_licencias', fila);
   if (error) { msg.className = 'msg err'; msg.textContent = error.message; return; }
-  // el POST no devuelve la fila, así que releemos para tener el id real
   const { data } = await api.get('viol_licencias', 'select=*&order=desde');
   state.licencias = data || state.licencias;
   $('#lcDesde').value = ''; $('#lcHasta').value = ''; $('#lcMotivo').value = '';
@@ -870,7 +1408,10 @@ $('#btnCsv').onclick = () => {
 $('#temporada').onchange = e => { state.temporada = Number(e.target.value); render(); };
 $('#orden').onchange = render;
 $('#verInactivos').onchange = render;
-$('#cupo').oninput = () => renderRotacion([...musicosVisibles()].sort((a, b) => totalTemporada(a.id) - totalTemporada(b.id)));
+$('#cupo').oninput = () => {
+  renderRotacion([...musicosVisibles()].sort((a, b) => totalTemporada(a.id) - totalTemporada(b.id)));
+  pintarAtriles(); // el cupo define cuántos atriles se arman para el concierto que todavía no tocó
+};
 $('#btnRefrescar').onclick = async () => { await cargar(); render(); toast('Actualizado'); };
 
 await procesarVueltaDelMail();
