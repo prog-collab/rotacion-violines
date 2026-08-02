@@ -53,8 +53,6 @@
   td.cell{min-width:62px}
   td.cell .v{display:block;padding:9px 6px;border-radius:6px;margin:2px}
   td.cell.z .v{color:var(--muted);opacity:.55}
-  td.cell.lic{background:color-mix(in srgb,var(--warn) 12%,transparent)}
-  td.cell.lic .v{color:var(--warn);font-weight:700;opacity:1}
   td.cell input{width:56px;text-align:center;padding:6px 2px;border-radius:6px;margin:2px;
     border:1px solid var(--line);background:transparent}
   td.cell input:focus{outline:2px solid var(--accent);outline-offset:-1px;background:var(--panel)}
@@ -356,6 +354,8 @@ const auth = {
       .then(r => ({ error: r.error })),
   /* Define la contraseña del usuario que ya viene autenticado por el link del mail. */
   async definirClave(password) {
+    if (!sesion?.access_token)
+      return { error: { message: 'El link ya no vale. Pedí uno nuevo desde Ingresar.' } };
     try {
       const r = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
         method: 'PUT',
@@ -581,7 +581,7 @@ function render() {
       ${cs.map(c => {
         const v = state.puntos.get(key(c.id, m.id)) ?? 0;
         if (enLicencia(m.id, c.fecha))
-          return `<td class="cell lic" title="De licencia en esta fecha"><span class="v">L</span></td>`;
+          return `<td class="cell" title="De licencia en esta fecha"><span class="v">L</span></td>`;
         return state.esEditor
           ? `<td class="cell ${v ? '' : 'z'}"><input type="number" step="0.25" min="-6" max="6"
                value="${v}" data-cid="${c.id}" data-mid="${m.id}"></td>`
