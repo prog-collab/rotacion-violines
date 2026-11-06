@@ -27,6 +27,11 @@ con lo que traía de antes. La rotación se decide por el total acumulado.
 
 ## Licencias largas y reintegro
 
+### Criterio acordado para licencias
+
+- **Larga, con reemplazo asignado:** no afecta la rotación de la fila. Se computa el promedio de los reducidos y se suma al músico cuando se reintegra.
+- **Corta, sin reemplazo asignado:** afecta la fila porque alguien ocupa ese lugar en los reducidos. No se suman puntos al músico cuando se reintegra.
+
 Cuando alguien se toma una licencia de larga duración se le carga el período desde el botón
 **Licencias** (músico, desde, hasta — vacío si todavía no volvió). En los conciertos que caen
 dentro del período su celda muestra **L** en vez de un puntaje, y esa persona queda fuera del
