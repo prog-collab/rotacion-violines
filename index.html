@@ -642,6 +642,8 @@ async function cargar() {
 }
 
 const conciertosTemporada = () => state.conciertos.filter(c => c.temporada === state.temporada);
+const columnasTemporada = () => conciertosTemporada().sort((a, b) =>
+  (b.fecha || '').localeCompare(a.fecha || '') || b.orden - a.orden);
 // puntos sumados dentro de la temporada que se está mirando
 const puntosTemporada = (mid) => conciertosTemporada().reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
 // arrastre: lo acumulado en temporadas anteriores
@@ -672,7 +674,7 @@ function musicosVisibles() {
 
 /* ---------- render ---------- */
 function render() {
-  const cs = conciertosTemporada();
+  const cs = columnasTemporada();
   const ms = musicosVisibles();
 
   const previa = hayArrastre() ? Math.max(...state.conciertos.filter(c => c.temporada < state.temporada).map(c => c.temporada)) : null;
@@ -1402,7 +1404,7 @@ $('#rgCalcular').onclick = () => {
 
 /* ---------- varios ---------- */
 $('#btnCsv').onclick = () => {
-  const cs = conciertosTemporada();
+  const cs = columnasTemporada();
   const filas = [['Músico', `Total ${state.temporada}`, 'Arrastre', ...cs.map(c => `${c.fecha_texto} ${c.titulo}`)]];
   musicosVisibles().forEach(m => filas.push([m.nombre, totalTemporada(m.id), arrastre(m.id),
     ...cs.map(c => state.puntos.get(key(c.id, m.id)) ?? 0)]));
