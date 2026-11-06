@@ -22,7 +22,8 @@ con lo que traía de antes. La rotación se decide por el total acumulado.
   Eso lo garantizan las políticas RLS de Postgres, no el navegador: aunque alguien edite el HTML,
   el servidor rechaza la escritura.
 - Un editor da de alta a otro desde el botón **Editores**. El nuevo editor entra por
-  **Ingresar → Crear / restablecer clave**, define su contraseña y ya puede editar.
+  **Ingresar → Crear cuenta**, define su contraseña y confirma el correo. Si ya tiene cuenta
+  y olvidó la contraseña, usa **Ingresar → Restablecer clave**.
 
 ## Licencias largas y reintegro
 
