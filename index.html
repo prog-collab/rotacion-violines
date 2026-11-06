@@ -239,7 +239,8 @@
   <input type="password" id="liPass" autocomplete="current-password">
   <div class="msg" id="liMsg"></div>
   <div class="row">
-    <button class="btn" id="liSignup">Crear / restablecer clave</button>
+    <button class="btn" id="liSignup">Crear cuenta</button>
+    <button class="btn" id="liRecover">Restablecer clave</button>
     <button class="btn" onclick="document.getElementById('dlgLogin').close()">Cancelar</button>
     <button class="btn primary" id="liGo">Entrar</button>
   </div>
@@ -581,7 +582,8 @@ $('#nvGo').onclick = async () => {
 $('#liGo').onclick = async () => {
   const msg = $('#liMsg'); msg.className = 'msg';
   const { error } = await auth.entrar($('#liEmail').value.trim(), $('#liPass').value);
-  if (error) { msg.className = 'msg err'; msg.textContent = error.message; return; }
+  if (error) { msg.className = 'msg err'; msg.textContent = /Invalid login credentials/i.test(error.message)
+    ? 'Email o contraseña incorrectos. Si no recordás la clave, tocá Restablecer clave.' : error.message; return; }
   $('#dlgLogin').close();
   await refrescarSesion();
   await cargar(); render();
@@ -593,21 +595,22 @@ $('#liSignup').onclick = async () => {
   const email = $('#liEmail').value.trim();
   const pass = $('#liPass').value;
   if (!email) { msg.className = 'msg err'; msg.textContent = 'Escribí tu email.'; return; }
-  if (pass.length >= 6) {
-    const { error, confirmar } = await auth.crear(email, pass);
-    if (error && !/already|registered|exист/i.test(error.message)) { msg.className = 'msg err'; msg.textContent = error.message; return; }
-    if (!error) {
-      msg.className = 'msg ok';
-      if (confirmar) { msg.textContent = 'Cuenta creada. Confirmá el email que te llegó y después entrá.'; return; }
-      $('#dlgLogin').close();
-      await refrescarSesion(); await cargar(); render();
-      toast(state.esEditor ? 'Modo edición activado' : 'Cuenta creada');
-      return;
-    }
-  }
+  if (pass.length < 6) { msg.className = 'msg err'; msg.textContent = 'Mínimo 6 caracteres.'; return; }
+  const { error, confirmar } = await auth.crear(email, pass);
+  if (error) { msg.className = 'msg err'; msg.textContent = error.message; return; }
+  if (confirmar) { msg.className = 'msg ok'; msg.textContent = 'Si es una cuenta nueva, confirmá el email que te llegó. Si ya tenías cuenta, usá Restablecer clave.'; return; }
+  $('#dlgLogin').close();
+  await refrescarSesion(); await cargar(); render();
+  toast(state.esEditor ? 'Modo edición activado' : 'Cuenta creada');
+};
+
+$('#liRecover').onclick = async () => {
+  const msg = $('#liMsg'); msg.className = 'msg';
+  const email = $('#liEmail').value.trim();
+  if (!email) { msg.className = 'msg err'; msg.textContent = 'Escribí tu email.'; return; }
   const { error } = await auth.recuperar(email);
   msg.className = error ? 'msg err' : 'msg ok';
-  msg.textContent = error ? error.message : 'Te mandamos un email para definir la contraseña.';
+  msg.textContent = error ? error.message : 'Si existe una cuenta para ese email, te mandamos un correo para definir la contraseña.';
 };
 
 /* ---------- datos ---------- */
