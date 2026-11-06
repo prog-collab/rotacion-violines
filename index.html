@@ -1352,7 +1352,8 @@ function calcularReintegro(mid, desde, hasta) {
   const traia = state.conciertos
     .filter(c => c.fecha ? c.fecha < desde : c.temporada < anio)
     .reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
-  const propio = enRango.reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
+  const propio = state.conciertos.filter(c => c.fecha && c.fecha >= desde && c.fecha <= hasta)
+    .reduce((s, c) => s + (state.puntos.get(key(c.id, mid)) || 0), 0);
   return { detalle, promedio, traia, propio };
 }
 
@@ -1387,6 +1388,7 @@ $('#rgCalcular').onclick = () => {
   }
   msg.textContent = '';
   const cuarto = Math.round(promedio * 4) / 4;
+  const cargar = cuarto - propio;
   $('#rgResu').hidden = false;
   $('#rgResu').innerHTML = `
     <table>
@@ -1401,8 +1403,8 @@ $('#rgCalcular').onclick = () => {
       <b>${fmt2(promedio)}</b>${cuarto !== promedio ? ` <span style="color:var(--muted)">· redondeado a cuartos: ${fmt2(cuarto)}</span>` : ''}</p>
     <p style="margin:4px 0 0">Traía hasta el ${fechaCorta(desde)}: <b>${fmt2(traia)}</b></p>
     <p style="margin:8px 0 0">Se reintegra con <span class="big">${fmt2(traia + promedio)}</span></p>
-    ${propio ? `<p class="legend" style="color:var(--warn)">Ojo: ${esc(nombreDe(mid))} ya tiene ${fmt2(propio)} punto(s) cargado(s) dentro del período. Si se los sumás, cuentan dos veces.</p>` : ''}
-    ${state.esEditor ? `<p class="legend">Para aplicarlo: en <b>+ Concierto</b> creá un <b>ajuste de puntaje</b> con fecha de reintegro y cargá <b>${fmt2(cuarto)}</b> solo para ${esc(nombreDe(mid))}. El total que traía ya está sumado.</p>` : ''}
+    ${propio ? `<p class="legend" style="color:var(--warn)">${esc(nombreDe(mid))} ya tiene ${fmt2(propio)} punto(s) cargado(s) dentro del período; se descuentan para no contarlos dos veces.</p>` : ''}
+    ${state.esEditor ? `<p class="legend">Para aplicarlo: en <b>+ Concierto</b> creá un <b>ajuste de puntaje</b> con fecha de reintegro y cargá <b>${fmt2(cargar)}</b> solo para ${esc(nombreDe(mid))}. El total que traía ya está sumado.</p>` : ''}
     <p class="legend">La columna “Promedian” es cuánta gente de la fila se promedió en cada concierto: los activos, sin ${esc(nombreDe(mid))} ni los que estaban de licencia en esa fecha.</p>`;
 };
 
