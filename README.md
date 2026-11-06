@@ -42,8 +42,9 @@ de la fila, sin contar al ausente ni a quien también estuviera de licencia esa 
 se suman esos promedios. Las columnas de ajuste no cuentan como conciertos. Así una licencia
 que arranca o termina en medio del período no distorsiona el número. La calculadora **solo
 muestra** el resultado: para aplicarlo, se crea un concierto marcado como ajuste de puntaje,
-con fecha de reintegro, y se carga solo el promedio redondeado a cuartos en la celda del músico.
-El total anterior ya está incluido. Si el músico figura inactivo, se lo reactiva editando su ficha;
+con fecha de reintegro, y se carga el promedio redondeado a cuartos menos los puntos que el
+músico ya tenga dentro del período de ausencia. El total anterior ya está incluido. Si el
+músico figura inactivo, se lo reactiva editando su ficha;
 quitar la licencia no cambia ese estado.
 
 ## Formación en el escenario
